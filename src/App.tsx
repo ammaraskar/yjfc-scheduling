@@ -1,36 +1,37 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import appLogo from '/favicon.svg'
+import { Router, Route, Switch, Redirect } from 'wouter'
+import { useHashLocation } from 'wouter/use-hash-location'
+import { AuthProvider, useAuth } from './auth'
 import PWABadge from './PWABadge.tsx'
-import './App.css'
+import LoginPage from './pages/LoginPage.tsx'
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoggedIn } = useAuth();
+  return isLoggedIn ? <Component /> : <Redirect to="/login" />
+}
+
+function AppRoutes() {
+  const { isLoggedIn } = useAuth();
+  return (
+    <Switch>
+      <Route path="/login">
+        {isLoggedIn ? <Redirect to="/schedule" /> : <LoginPage />}
+      </Route>
+      <Route path="/schedule" component={() => <ProtectedRoute component={() => <div>Schedule</div>} />} />
+      <Route>
+        <Redirect to={isLoggedIn ? '/schedule' : '/login'} />
+      </Route>
+    </Switch>
+  )
+}
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={appLogo} className="logo" alt="yjfc-scheduling logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>yjfc-scheduling</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      <PWABadge />
-    </>
+    <Router hook={useHashLocation}>
+      <AuthProvider>
+        <AppRoutes />
+        <PWABadge />
+      </AuthProvider>
+    </Router>
   )
 }
 
