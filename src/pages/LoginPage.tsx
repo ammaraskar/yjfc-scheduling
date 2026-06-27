@@ -9,13 +9,24 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    login();
-    navigate('/schedule');
+    setError(null);
+    setLoading(true);
+    try {
+      await login(username, password);
+      navigate('/schedule');
+    } catch (error) {
+      console.error('Login failed', error);
+      setError('Invalid username or password.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -50,27 +61,25 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-medium" style={{ color: '#3a4654' }}>
-                  Email address
+                <Label htmlFor="username" className="text-sm font-medium" style={{ color: '#3a4654' }}>
+                  Username
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
+                  id="username"
+                  type="text"
+                  autoComplete="username"
                   required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="border-[#e1e6eb] focus-visible:ring-[#EAAA00]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium" style={{ color: '#3a4654' }}>
-                    Password
-                  </Label>
-                </div>
+                <Label htmlFor="password" className="text-sm font-medium" style={{ color: '#3a4654' }}>
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -83,8 +92,13 @@ export default function LoginPage() {
                 />
               </div>
 
+              {error && (
+                <p className="text-sm" style={{ color: '#c0392b' }}>{error}</p>
+              )}
+
               <Button
                 type="submit"
+                disabled={loading}
                 className="w-full font-bold mt-2 cursor-pointer"
                 style={{
                   background: '#EAAA00',
@@ -92,7 +106,7 @@ export default function LoginPage() {
                   boxShadow: '0 1px 2px rgba(234,170,0,.4)',
                 }}
               >
-                Sign In
+                {loading ? 'Signing in…' : 'Sign In'}
               </Button>
             </form>
 

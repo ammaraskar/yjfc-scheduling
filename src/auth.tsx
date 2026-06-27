@@ -1,28 +1,29 @@
 import { createContext, useContext, useState } from 'react'
+import { login as apiLogin, type LoginResponse } from '@/api'
 
 interface AuthContextType {
-  isLoggedIn: boolean
-  login: () => void
-  logout: () => void
+  isLoggedIn: boolean;
+  session: LoginResponse | null;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () => false
-  );
+  const [session, setSession] = useState<LoginResponse | null>(null);
 
-  function login() {
-    setIsLoggedIn(true);
+  async function login(username: string, password: string) {
+    const result = await apiLogin(username, password);
+    setSession(result);
   }
 
   function logout() {
-    setIsLoggedIn(false);
+    setSession(null);
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn: session !== null, session, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
