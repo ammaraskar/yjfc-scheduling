@@ -4,23 +4,30 @@ import { AuthProvider, useAuth } from './auth'
 import PWABadge from './PWABadge.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import SchedulePage from './pages/SchedulePage.tsx'
-
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isLoggedIn } = useAuth();
-  return isLoggedIn ? <Component /> : <Redirect to="/login" />
-}
+import AircraftPage from './pages/AircraftPage.tsx'
+import AircraftDetailPage from './pages/AircraftDetailPage.tsx'
 
 function AppRoutes() {
   const { isLoggedIn } = useAuth();
+
+  if (!isLoggedIn) {
+    return (
+      <Switch>
+        <Route path="/login"><LoginPage /></Route>
+        <Route><Redirect to="/login" /></Route>
+      </Switch>
+    )
+  }
+
   return (
     <Switch>
-      <Route path="/login">
-        {isLoggedIn ? <Redirect to="/schedule" /> : <LoginPage />}
+      <Route path="/login"><Redirect to="/schedule" /></Route>
+      <Route path="/schedule"><SchedulePage /></Route>
+      <Route path="/aircraft/:tail">
+        {(params) => <AircraftDetailPage tail={params.tail!} />}
       </Route>
-      <Route path="/schedule" component={() => <ProtectedRoute component={SchedulePage} />} />
-      <Route>
-        <Redirect to={isLoggedIn ? '/schedule' : '/login'} />
-      </Route>
+      <Route path="/aircraft"><AircraftPage /></Route>
+      <Route><Redirect to="/schedule" /></Route>
     </Switch>
   )
 }
