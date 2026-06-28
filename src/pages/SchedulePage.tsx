@@ -75,6 +75,7 @@ const GRID_START = 6 * 60;    // 6 am
 const GRID_END   = 23 * 60 + 30;  // 11:30 pm
 const GRID_SPAN  = GRID_END - GRID_START; // 1050 min
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // [6..23]
+const AIRCRAFT_COL_WIDTH = 150;
 
 function hourLabel(h: number): string {
   if (h === 0) return '12a';
@@ -205,15 +206,15 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
   return (
     <div style={{ display: 'flex', background: 'var(--card)' }}>
       {/* Aircraft sidebar */}
-      <div style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)' }}>
-        <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
+      <div style={{ width: AIRCRAFT_COL_WIDTH, flexShrink: 0, borderRight: '1px solid var(--border)' }}>
+        <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.07em', color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Aircraft</span>
         </div>
         {aircraft.map((ac, i) => {
           const live = nowMin >= 0 ? liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate) : null;
           const dotColor = live ? statusDotColor(live.status) : undefined;
           return (
-            <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 12px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <Link href={`/aircraft/${ac.tail}`}>
                   <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
