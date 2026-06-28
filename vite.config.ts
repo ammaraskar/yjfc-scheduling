@@ -16,8 +16,8 @@ export default defineConfig({
     },
 
     manifest: {
-      name: 'yjfc-scheduling',
-      short_name: 'yjfc-scheduling',
+      name: 'YJFC Scheduling',
+      short_name: 'YJFC Scheduling',
       description: 'Scheduling for the Yellow Jacket Flying Club',
       theme_color: '#003057',
     },
