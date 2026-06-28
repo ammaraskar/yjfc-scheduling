@@ -11,6 +11,7 @@ function PWABadge() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    immediate: true,
     onRegisteredSW(swUrl, r) {
       if (period <= 0) return
       if (r?.active?.state === 'activated') {
