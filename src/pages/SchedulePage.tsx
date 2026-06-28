@@ -276,8 +276,8 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)' }}>{aircraft.length}</span>
         </div>
         {aircraft.map((ac, i) => {
-          const live = liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate);
-          const dotColor = statusColor(live.status);
+          const live = nowMin >= 0 ? liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate) : null;
+          const dotColor = live ? statusColor(live.status) : undefined;
           return (
             <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -289,10 +289,12 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
                 </Link>
                 <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>{ac.makeModel.split(' ')[1] ?? ''}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.note}</span>
-              </div>
+              {live && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.note}</span>
+                </div>
+              )}
             </div>
           );
         })}
