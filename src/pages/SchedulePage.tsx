@@ -71,12 +71,13 @@ function parseDestType(dest: string): { type: string; sub: string } {
 
 // ─── Timeline constants ──────────────────────────────────────────────────────
 
-const GRID_START = 6 * 60;   // 6 am
-const GRID_END   = 21 * 60;  // 9 pm
-const GRID_SPAN  = GRID_END - GRID_START; // 900 min
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // [6..21]
+const GRID_START = 6 * 60;    // 6 am
+const GRID_END   = 23 * 60 + 30;  // 11:30 pm
+const GRID_SPAN  = GRID_END - GRID_START; // 1050 min
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // [6..23]
 
 function hourLabel(h: number): string {
+  if (h === 0) return '12a';
   if (h < 12) return `${h}a`;
   if (h === 12) return '12p';
   return `${h - 12}p`;
@@ -156,15 +157,21 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
   const name = event.name.trim() || sub;
   const detail = event.tagMsg.trim();
   const predone = event.classNames.includes(EventClass.Predone);
+  const clipsLeft  = startMin < GRID_START;
+  const clipsRight = endMin   > GRID_END;
+  const rL = clipsLeft  ? 0 : 7;
+  const rR = clipsRight ? 0 : 7;
+  const lOff = clipsLeft  ? 0 : 2;
+  const rOff = clipsRight ? 0 : 2;
 
   return (
     <div style={{
       position: 'absolute', top: 7, bottom: 7,
-      left: `calc(${left}% + 2px)`, width: `calc(${width}% - 4px)`,
+      left: `calc(${left}% + ${lOff}px)`, width: `calc(${width}% - ${lOff + rOff}px)`,
       background: vis.bg,
       border: vis.dashed ? '1.5px dashed #00355f' : undefined,
       borderLeft: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
-      borderRadius: 7,
+      borderRadius: `${rL}px ${rR}px ${rR}px ${rL}px`,
       padding: '5px 9px',
       display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
       overflow: 'hidden',
@@ -201,7 +208,6 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
       <div style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)' }}>
         <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.07em', color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Aircraft</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)' }}>{aircraft.length}</span>
         </div>
         {aircraft.map((ac, i) => {
           const live = nowMin >= 0 ? liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate) : null;
@@ -240,7 +246,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
             ))}
           </div>
           {/* Event rows */}
-          <div style={{ position: 'relative', background: 'repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px calc(100%/16))' }}>
+          <div style={{ position: 'relative', background: 'repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px calc(100%/18))' }}>
             {aircraft.map((ac, i) => (
               <div key={ac.tail} style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 {(eventsByTail[ac.tail] ?? []).map(ev => (
@@ -270,15 +276,21 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
   const { sub } = parseDestType(event.dest);
   const name = event.name.trim() || sub;
   const predone = event.classNames.includes(EventClass.Predone);
+  const clipsTop    = startMin < GRID_START;
+  const clipsBottom = endMin   > GRID_END;
+  const rT = clipsTop    ? 0 : 6;
+  const rB = clipsBottom ? 0 : 6;
+  const tOff = clipsTop    ? 0 : 2;
+  const bOff = clipsBottom ? 0 : 2;
 
   return (
     <div style={{
       position: 'absolute', left: 3, right: 3,
-      top: `calc(${topPct}% + 2px)`, height: `calc(${heightPct}% - 4px)`,
+      top: `calc(${topPct}% + ${tOff}px)`, height: `calc(${heightPct}% - ${tOff + bOff}px)`,
       background: vis.bg,
       border: vis.dashed ? '1.5px dashed #00355f' : undefined,
       borderLeft: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
-      borderRadius: 6,
+      borderRadius: `${rT}px ${rT}px ${rB}px ${rB}px`,
       padding: '5px 7px',
       overflow: 'hidden',
       color: vis.text,
