@@ -39,7 +39,7 @@ function formatResDay(event: ScheduleEvent): string {
 }
 
 function resBarColor(event: ScheduleEvent): string {
-  if (event.classNames.includes(EventClass.Ovly)) return '#dc2626';
+  if (event.classNames.includes(EventClass.Ovly) || event.classNames.includes(EventClass.Maint)) return '#8a3d2f';
   const sep = event.dest.indexOf(':');
   const type = sep === -1 ? event.dest.trim() : event.dest.slice(0, sep).trim();
   if (type === 'Training') return 'var(--club-gold)';
@@ -169,7 +169,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
         const now = new Date();
         setUpcomingEvents(
           events
-            .filter(e => e.tail === tail && !e.classNames.includes(EventClass.Maint) && new Date(e.end) > now)
+            .filter(e => e.tail === tail && new Date(e.end) > now)
             .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
         );
       })
