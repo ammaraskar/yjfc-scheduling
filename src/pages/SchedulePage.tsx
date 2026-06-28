@@ -69,6 +69,13 @@ function parseDestType(dest: string): { type: string; sub: string } {
   return { type: dest.slice(0, sep).trim(), sub: dest.slice(sep + 1).trim() };
 }
 
+function parseDestAirport(dest: string): string | null {
+  const { type, sub } = parseDestType(dest);
+  if (type === 'Training') return null;
+  const token = sub.split(/[;\s]/)[0].toUpperCase();
+  return /^[A-Z0-9]{3,4}$/.test(token) ? token : null;
+}
+
 // ─── Timeline constants ──────────────────────────────────────────────────────
 
 const GRID_START = 6 * 60;    // 6 am
@@ -186,6 +193,8 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
   const lOff = clipsLeft  ? 0 : 2;
   const rOff = clipsRight ? 0 : 2;
 
+  const airport = parseDestAirport(event.dest);
+
   return (
     <div style={{
       position: 'absolute', top: 7, bottom: 7,
@@ -195,7 +204,7 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
       borderLeft: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
       borderRadius: `${rL}px ${rR}px ${rR}px ${rL}px`,
       padding: '5px 9px',
-      display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
+      display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6,
       overflow: 'hidden',
       color: vis.text,
       boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.18)',
@@ -203,12 +212,19 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
       boxSizing: 'border-box',
       zIndex: vis.overlay ? 5 : undefined,
     }}>
-      <span style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {name}
-      </span>
-      <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
-        {formatTimeRange(event)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
-      </span>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {name}
+        </span>
+        <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
+          {formatTimeRange(event)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
+        </span>
+      </div>
+      {airport && (
+        <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, background: 'rgba(255,255,255,0.18)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.03em' }}>
+          {airport}
+        </span>
+      )}
     </div>
   );
 }
@@ -298,6 +314,7 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
   const { sub } = parseDestType(event.dest);
   const name = event.name.trim() || sub;
   const predone = event.classNames.includes(EventClass.Predone);
+  const airport = parseDestAirport(event.dest);
   const clipsTop    = startMin < GRID_START;
   const clipsBottom = endMin   > EVENT_EDGE_CLIP_END;
   const rT = clipsTop    ? 0 : 6;
@@ -323,6 +340,7 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
       <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1, whiteSpace: 'nowrap' }}>
         {formatTimeRange(event)}{predone && <span style={{ color: '#166534' }}> · ✓ preflight</span>}
+        {airport && <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, background: 'rgba(255,255,255,0.18)', borderRadius: 3, padding: '1px 4px' }}>{airport}</span>}
       </div>
     </div>
   );
@@ -390,6 +408,7 @@ function ListEvent({ event }: { event: ScheduleEvent }) {
   const vis  = eventVisual(event.dest, event.classNames);
   const name = event.name.trim() || sub;
   const detail = event.tagMsg.trim();
+  const airport = parseDestAirport(event.dest);
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -402,6 +421,11 @@ function ListEvent({ event }: { event: ScheduleEvent }) {
       <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '2px 8px', flexShrink: 0, background: vis.bg, color: vis.text, border: vis.dashed ? '1px dashed #00355f' : undefined }}>
         {type}
       </span>
+      {airport && (
+        <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 6px', flexShrink: 0, background: '#003057', color: '#fff', letterSpacing: '0.03em' }}>
+          {airport}
+        </span>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
         {detail && <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 1 }}>with {detail}</div>}
