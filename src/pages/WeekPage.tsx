@@ -16,9 +16,21 @@ const GRID_END      = 24 * 60;
 const GRID_SPAN     = GRID_END - GRID_START;
 export const WEEK_AC_COL_W = 110;
 const CELL_H        = 44;
+const MINI_BAR_INSET_PX = 1;
+// Hourly grid from 6am to midnight
+const DAY_GRID_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+const DAY_TICK_HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+const DAY_LABEL_HOURS = [8, 14, 20]; // 8a, 2p, 8p
 
 function toTimePct(minutes: number): number {
   return Math.max(0, Math.min(100, (minutes - GRID_START) / GRID_SPAN * 100));
+}
+
+function hourTickLabel(hour: number): string {
+  if (hour === 24) return '12a';
+  if (hour === 12) return '12p';
+  if (hour > 12) return `${hour - 12}p`;
+  return `${hour}a`;
 }
 
 // ─── Exported helpers ─────────────────────────────────────────────────────────
@@ -66,11 +78,11 @@ function MiniBar({ event, day }: { event: ScheduleEvent; day: Date }) {
     <div style={{
       position: 'absolute',
       top: '50%', transform: 'translateY(-50%)',
-      left: `${left}%`,
-      width: `max(3px, ${width}%)`,
-      height: 10,
+      left: `calc(${left}% + ${MINI_BAR_INSET_PX}px)`,
+      width: `max(2px, calc(${width}% - ${MINI_BAR_INSET_PX * 2}px))`,
+      height: 26,
       background: vis.bg,
-      borderRadius: 2,
+      borderRadius: 3,
       border: vis.dashed ? '1px dashed #00355f' : undefined,
       opacity: 0.9,
     }} />
@@ -98,7 +110,88 @@ function DayCell({ day, events, isLast, onClick }: {
         background: today ? 'rgba(212,160,23,0.06)' : undefined,
       }}
     >
+      {DAY_GRID_HOURS.map(hour => (
+        <div
+          key={hour}
+          style={{
+            position: 'absolute',
+            top: 8,
+            bottom: 8,
+            left: `${toTimePct(hour * 60)}%`,
+            width: 1,
+            transform: 'translateX(-0.5px)',
+            background: 'var(--border)',
+            opacity: hour % 3 === 0 ? 0.5 : 0.25,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
       {events.map(ev => <MiniBar key={ev.id} event={ev} day={day} />)}
+    </div>
+  );
+}
+
+function WeekTimeRow() {
+  return (
+    <div style={{ display: 'flex', height: 24, borderTop: '1px solid var(--border)', background: 'var(--muted)' }}>
+      <div style={{
+        width: WEEK_AC_COL_W,
+        flexShrink: 0,
+        borderRight: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 10px',
+      }}>
+        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 }}>
+          Time
+        </span>
+      </div>
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            flex: 1,
+            position: 'relative',
+            borderRight: i < 6 ? '1px solid var(--border)' : 'none',
+          }}
+        >
+          {DAY_TICK_HOURS.map(hour => (
+            <div
+              key={hour}
+              style={{
+                position: 'absolute',
+                top: 2,
+                bottom: 12,
+                left: `${toTimePct(hour * 60)}%`,
+                width: 1,
+                transform: 'translateX(-0.5px)',
+                background: 'var(--border)',
+                opacity: hour % 3 === 0 ? 0.7 : 0.35,
+              }}
+            />
+          ))}
+          {DAY_LABEL_HOURS.map(hour => {
+            return (
+              <span
+                key={hour}
+                style={{
+                  position: 'absolute',
+                  bottom: 1,
+                  left: `${toTimePct(hour * 60)}%`,
+                  transform: 'translateX(-50%)',
+                  fontSize: 9.5,
+                  color: 'var(--muted-foreground)',
+                  fontWeight: 600,
+                  letterSpacing: '.01em',
+                  pointerEvents: 'none',
+                }}
+              >
+                {hourTickLabel(hour)}
+              </span>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -116,7 +209,6 @@ function SpanBanner({ event, startIdx, endIdx }: {
   startIdx: number;
   endIdx: number;
 }) {
-  const spanCount = endIdx - startIdx + 1;
   const vis     = eventVisual(event.dest, event.classNames);
   const isMaint = event.classNames.includes(EventClass.Maint) || event.classNames.includes(EventClass.Ovly);
   const predone = event.classNames.includes(EventClass.Predone);
@@ -126,12 +218,24 @@ function SpanBanner({ event, startIdx, endIdx }: {
     ? parseMaintDescription(event.info).trim()
     : (event.tagMsg.trim() || sub);
 
+  // Position banner at actual start/end times, not column boundaries.
+  // Events ending exactly at midnight (00:00) are treated as end-of-grid.
+  const evStart       = new Date(event.start);
+  const evEnd         = new Date(event.end);
+  const startMinOfDay = evStart.getHours() * 60 + evStart.getMinutes();
+  const endMinRaw     = evEnd.getHours()   * 60 + evEnd.getMinutes();
+  const endMinOfDay   = endMinRaw === 0 ? GRID_END : endMinRaw;
+  const colW          = 100 / 7;
+  const leftPct       = startIdx * colW + toTimePct(startMinOfDay) * colW / 100;
+  const rightPct      = endIdx   * colW + toTimePct(endMinOfDay)   * colW / 100;
+  const widthPct      = Math.max(0.5, rightPct - leftPct);
+
   return (
     <div style={{
       position: 'absolute',
       top: 5, bottom: 5,
-      left:  `calc(${startIdx} / 7 * 100% + 1px)`,
-      width: `calc(${spanCount} / 7 * 100% - 2px)`,
+      left:  `${leftPct}%`,
+      width: `${widthPct}%`,
       background: vis.bg,
       border:     vis.dashed ? '1.5px dashed #00355f' : undefined,
       borderLeft: predone ? '3px solid #16a34a' : (vis.dashed ? '1.5px dashed #00355f' : undefined),
@@ -284,6 +388,7 @@ export function WeekGrid({ days, events, visibleAircraft, onSelectDay }: {
           onSelectDay={onSelectDay}
         />
       ))}
+      <WeekTimeRow />
     </div>
   );
 }
