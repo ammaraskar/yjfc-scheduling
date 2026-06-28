@@ -352,6 +352,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
 
 const ROW_H = 42; // px per hour
 const VERT_TIME_COL_W = 32;
+const VERT_AIRCRAFT_COL_MIN_W = 96;
 
 function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate: Date }) {
   const { startMin, endMin } = eventMinutesForDay(event, selectedDate);
@@ -394,8 +395,14 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       <div style={{ fontWeight: 600, fontSize: 12, overflowWrap: 'break-word' }}>{name}</div>
       <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1 }}>
         {formatTimeRange(event)}
-        {airport && <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, background: 'rgba(255,255,255,0.18)', borderRadius: 3, padding: '1px 4px' }}>{airport}</span>}
       </div>
+      {airport && (
+        <div style={{ marginTop: 3 }}>
+          <span style={{ fontSize: 9.5, fontWeight: 700, background: 'rgba(255,255,255,0.18)', borderRadius: 3, padding: '1px 4px' }}>
+            {airport}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -420,9 +427,10 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
 
 function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date }) {
   const totalH = HOURS.length * ROW_H;
+  const minGridWidth = VERT_TIME_COL_W + aircraft.length * VERT_AIRCRAFT_COL_MIN_W;
   return (
     <div style={{ background: 'var(--card)', overflowX: 'auto' }}>
-      <div style={{ minWidth: 540 }}>
+      <div style={{ minWidth: minGridWidth }}>
         {/* Column headers */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
           <div style={{ width: VERT_TIME_COL_W, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
