@@ -2,13 +2,56 @@ import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
 import { getAircraft } from '@/data/aircraft'
-import { getResStatus, type ResStatus } from '@/api'
+import { getResStatus, getSchedule, EventClass, type ResStatus, type ScheduleEvent } from '@/api'
 import { useAuth } from '@/auth'
 
 interface SquawkEntry {
   date: string;
   text: string;
   author: string;
+}
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+function formatHour(d: Date): string {
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const suffix = h < 12 ? 'a' : 'p';
+  const h12 = h % 12 || 12;
+  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
+}
+
+function formatResTime(event: ScheduleEvent): string {
+  return `${formatHour(new Date(event.start))} – ${formatHour(new Date(event.end))}`;
+}
+
+function formatResDay(event: ScheduleEvent): string {
+  const start = new Date(event.start);
+  const today = new Date();
+  const tomorrow = addDays(today, 1);
+  if (start.toDateString() === today.toDateString()) return 'Today';
+  if (start.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+  return start.toLocaleDateString('en-US', { weekday: 'short' });
+}
+
+function resBarColor(event: ScheduleEvent): string {
+  if (event.classNames.includes(EventClass.Ovly)) return '#dc2626';
+  const sep = event.dest.indexOf(':');
+  const type = sep === -1 ? event.dest.trim() : event.dest.slice(0, sep).trim();
+  if (type === 'Training') return 'var(--club-gold)';
+  return '#00355f';
+}
+
+function resSubLabel(event: ScheduleEvent): string {
+  const sep = event.dest.indexOf(':');
+  const type = (sep === -1 ? event.dest.trim() : event.dest.slice(0, sep).trim()).toLowerCase();
+  const sub = sep === -1 ? '' : event.dest.slice(sep + 1).trim().toLowerCase();
+  const day = formatResDay(event);
+  return [day, type, sub].filter(Boolean).join(' · ');
 }
 
 function parseSquawkEntries(detail: string): SquawkEntry[] {
@@ -105,6 +148,8 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
   const { session } = useAuth();
   const [liveData, setLiveData] = useState<ResStatus | null>(null);
   const [loadingLive, setLoadingLive] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEvent[]>([]);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -113,6 +158,23 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
       .then(setLiveData)
       .catch(console.error)
       .finally(() => setLoadingLive(false));
+  }, [tail, session]);
+
+  useEffect(() => {
+    if (!session) return;
+    setLoadingSchedule(true);
+    const today = new Date();
+    getSchedule(session.userid, session.session, today, addDays(today, 14))
+      .then(events => {
+        const now = new Date();
+        setUpcomingEvents(
+          events
+            .filter(e => e.tail === tail && !e.classNames.includes(EventClass.Maint) && new Date(e.end) > now)
+            .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+        );
+      })
+      .catch(console.error)
+      .finally(() => setLoadingSchedule(false));
   }, [tail, session]);
 
   if (!aircraft) {
@@ -493,19 +555,38 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
               >
                 + Reserve {aircraft.tail}
               </button>
-              <button
-                className="block w-full text-center text-[12.5px] md:text-[13px] font-semibold rounded-[9px] py-[8px] md:py-[9px] mb-[12px] md:mb-[20px] cursor-pointer border border-border bg-card text-foreground"
-              >
-                Find next available time
-              </button>
 
-              {/* Upcoming reservations placeholder */}
+              {/* Upcoming reservations */}
               <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[11px] text-muted-foreground">
                 Upcoming reservations
               </div>
-              <div className="rounded-[8px] p-[12px] text-[12px] text-center bg-muted border border-border text-muted-foreground">
-                No upcoming reservations
-              </div>
+              {loadingSchedule ? (
+                <div className="rounded-[8px] p-[12px] text-[12px] text-center bg-muted border border-border text-muted-foreground">
+                  Loading…
+                </div>
+              ) : upcomingEvents.length === 0 ? (
+                <div className="rounded-[8px] p-[12px] text-[12px] text-center bg-muted border border-border text-muted-foreground">
+                  No upcoming reservations
+                </div>
+              ) : (
+                <div className="flex flex-col gap-[6px]">
+                  {upcomingEvents.slice(0, 8).map(event => (
+                    <div
+                      key={event.id}
+                      className="flex items-stretch rounded-[7px] overflow-hidden border border-border bg-card"
+                    >
+                      <div className="w-[3px] shrink-0" style={{ background: resBarColor(event) }} />
+                      <div className="flex-1 flex items-center justify-between gap-[8px] p-[7px_9px]">
+                        <div className="min-w-0">
+                          <div className="text-[12.5px] font-semibold text-foreground truncate">{event.name}</div>
+                          <div className="text-[11px] text-muted-foreground truncate">{resSubLabel(event)}</div>
+                        </div>
+                        <div className="font-mono text-[11px] text-muted-foreground shrink-0">{formatResTime(event)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
