@@ -5,6 +5,9 @@ export const EventClass = {
   Maint:   'maint',
   Predone: 'predone',
   Other:   'other',
+  // A maintenance event placed on top of an existing reservation, superseding it.
+  // The aircraft is pulled from service even though a pilot already had it booked.
+  Ovly:    'ovly',
 } as const;
 
 export type EventClass = typeof EventClass[keyof typeof EventClass];

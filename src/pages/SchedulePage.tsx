@@ -102,11 +102,19 @@ function toLeftPct(minutes: number): number {
 
 // ─── Event block styles ──────────────────────────────────────────────────────
 
-type EventVisual = { bg: string; text: string; subText: string; dashed?: boolean; stripe?: boolean };
+type EventVisual = { bg: string; text: string; subText: string; dashed?: boolean; stripe?: boolean; overlay?: boolean };
 
 const MAINT_STRIPE = 'repeating-linear-gradient(45deg,#8a3d2f 0 9px,#7c3526 9px 18px)';
+// Overlay maintenance uses solid red distinct from the striped maint color so it's
+// immediately obvious that a booked reservation has been superseded.
+const OVLY_BG = '#dc2626';
 
 function eventVisual(dest: string, classNames: EventClass[]): EventVisual {
+  // Overlay maintenance: aircraft pulled from service on top of an existing reservation.
+  // Renders above regular events (z-index) and uses a distinct solid red.
+  if (classNames.includes(EventClass.Ovly)) {
+    return { bg: OVLY_BG, text: '#ffffff', subText: 'rgba(255,255,255,0.85)', overlay: true };
+  }
   if (classNames.includes(EventClass.Maint)) {
     return { bg: MAINT_STRIPE, text: '#ffffff', subText: 'rgba(255,255,255,0.85)', stripe: true };
   }
@@ -192,7 +200,7 @@ function liveStatus(events: ScheduleEvent[], nowMin: number, selectedDate: Date)
       return startMin <= nowMin && endMin > nowMin;
     });
     if (current) {
-      if (current.classNames.includes(EventClass.Maint)) {
+      if (current.classNames.includes(EventClass.Maint) || current.classNames.includes(EventClass.Ovly)) {
         return { status: 'maintenance', note: 'Maintenance' };
       }
       const { endMin } = eventMinutesForDay(current, selectedDate);
@@ -236,6 +244,7 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
       boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.18)',
       minWidth: 0,
       boxSizing: 'border-box',
+      zIndex: vis.overlay ? 5 : undefined,
     }}>
       <span style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {name}
@@ -345,6 +354,7 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       color: vis.text,
       boxSizing: 'border-box',
       boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.15)',
+      zIndex: vis.overlay ? 5 : undefined,
     }}>
       <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
       <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1, whiteSpace: 'nowrap' }}>
@@ -616,6 +626,7 @@ export default function SchedulePage() {
         <LegendItem color="var(--club-gold)" label="Training" />
         <LegendItem color={undefined} label="Standby" dashed />
         <LegendItem color={undefined} label="Maintenance" stripe />
+        <LegendItem color={OVLY_BG} label="Superseded" />
       </div>
 
       {/* Content */}

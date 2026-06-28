@@ -149,4 +149,11 @@ describe('getSchedule', () => {
     expect(events[0].classNames).toContain(EventClass.Other);
     expect(events[0].classNames).toHaveLength(2);
   });
+
+  it('parses ovly className as an overlay maintenance event superseding a reservation', async () => {
+    const fetch = stubFetch([{ ...RAW_EVENTS[0], className: 'ovly' }]);
+    const events = await getSchedule('148772', 'S', new Date(2026, 5, 27), new Date(2026, 5, 28), 0, fetch);
+    expect(events[0].classNames).toContain(EventClass.Ovly);
+    expect(events[0].classNames).toHaveLength(1);
+  });
 });
