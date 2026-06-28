@@ -8,6 +8,9 @@ import { AIRCRAFT } from '@/data/aircraft'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SlidersHorizontal, ChevronDown, Wrench } from 'lucide-react'
+import { startOfDay, addDays, isToday, toDateParam, sundayOfWeek } from '@/lib/dateUtils'
+import { parseDestType, parseDestAirport, eventVisual, MAINT_STRIPE, OVLY_BG, formatTimeRange } from '@/lib/eventVisual'
+import { WeekGrid, weekRangeLabel } from './WeekPage'
 
 // ─── Portrait detection ───────────────────────────────────────────────────────
 
@@ -24,34 +27,8 @@ function usePortrait(): boolean {
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 
-function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
-}
-
-function isToday(d: Date): boolean {
-  const t = new Date();
-  return d.getFullYear() === t.getFullYear() &&
-    d.getMonth() === t.getMonth() &&
-    d.getDate() === t.getDate();
-}
-
 function formatDayLabel(d: Date): string {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatTimeCompact(iso: string): string {
-  const d = new Date(iso);
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const suffix = h < 12 ? 'a' : 'p';
-  const h12 = h % 12 || 12;
-  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
 }
 
 function currentMinutes(): number {
@@ -74,21 +51,6 @@ function localTime(): string {
   return `${h}:${m}${s}`;
 }
 
-// ─── Event parsing ───────────────────────────────────────────────────────────
-
-function parseDestType(dest: string): { type: string; sub: string } {
-  const sep = dest.indexOf(':');
-  if (sep === -1) return { type: dest.trim(), sub: '' };
-  return { type: dest.slice(0, sep).trim(), sub: dest.slice(sep + 1).trim() };
-}
-
-function parseDestAirport(dest: string): string | null {
-  const { type, sub } = parseDestType(dest);
-  if (type === 'Training') return null;
-  const token = sub.split(/[;\s]/)[0].toUpperCase();
-  return /^[A-Z0-9]{3,4}$/.test(token) ? token : null;
-}
-
 // ─── Timeline constants ──────────────────────────────────────────────────────
 
 const GRID_START = 6 * 60;    // 6 am
@@ -107,41 +69,6 @@ function hourLabel(h: number): string {
 
 function toLeftPct(minutes: number): number {
   return Math.max(0, Math.min(100, (minutes - GRID_START) / GRID_SPAN * 100));
-}
-
-// ─── Event block styles ──────────────────────────────────────────────────────
-
-type EventVisual = { bg: string; text: string; subText: string; dashed?: boolean; stripe?: boolean; overlay?: boolean };
-
-const MAINT_STRIPE = 'repeating-linear-gradient(45deg,#8a3d2f 0 9px,#7c3526 9px 18px)';
-// Overlay maintenance uses solid red distinct from the striped maint color so it's
-// immediately obvious that a booked reservation has been superseded.
-const OVLY_BG = '#dc2626';
-
-function eventVisual(dest: string, classNames: EventClass[]): EventVisual {
-  // Overlay maintenance: aircraft pulled from service on top of an existing reservation.
-  // Renders above regular events (z-index) and uses a distinct solid red.
-  if (classNames.includes(EventClass.Ovly)) {
-    return { bg: OVLY_BG, text: '#ffffff', subText: 'rgba(255,255,255,0.85)', overlay: true };
-  }
-  if (classNames.includes(EventClass.Maint)) {
-    return { bg: MAINT_STRIPE, text: '#ffffff', subText: 'rgba(255,255,255,0.85)', stripe: true };
-  }
-  if (classNames.includes(EventClass.Stby)) {
-    return { bg: 'var(--card)', text: '#00355f', subText: 'var(--muted-foreground)', dashed: true };
-  }
-  const { type } = parseDestType(dest);
-  switch (type) {
-    case 'Training':
-      return { bg: 'var(--club-gold)', text: '#2a2200', subText: 'rgba(42,34,0,0.7)' };
-    case 'Rental':
-    case 'Charter':
-      return { bg: '#00355f', text: '#ffffff', subText: 'rgba(255,255,255,0.82)' };
-    case 'Standby':
-      return { bg: 'var(--card)', text: '#00355f', subText: 'var(--muted-foreground)', dashed: true };
-    default:
-      return { bg: '#00355f', text: '#ffffff', subText: 'rgba(255,255,255,0.82)' };
-  }
 }
 
 // ─── METAR hook ──────────────────────────────────────────────────────────────
@@ -198,20 +125,6 @@ const NOW_MARKER_STYLE = {
   border: '2px solid var(--card)',
   boxShadow: `0 0 0 1px ${NOW_LINE_COLOR}`,
 };
-
-// ─── Event block styles ──────────────────────────────────────────────────────
-
-function formatTimeRange(event: ScheduleEvent): string {
-  const startDate = new Date(event.start);
-  const endDate = new Date(event.end);
-  const sameDay = startDate.getFullYear() === endDate.getFullYear() &&
-                  startDate.getMonth() === endDate.getMonth() &&
-                  startDate.getDate() === endDate.getDate();
-  const endTime = formatTimeCompact(event.end);
-  if (sameDay) return `${formatTimeCompact(event.start)}–${endTime}`;
-  const endDateStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${formatTimeCompact(event.start)}–${endDateStr} ${endTime}`;
-}
 
 // ─── Horizontal view ─────────────────────────────────────────────────────────
 
@@ -497,6 +410,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { events
 export default function SchedulePage() {
   const { session } = useAuth();
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  const [viewMode, setViewMode]         = useState<'day' | 'week'>('day');
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedTails, setSelectedTails] = useState<Set<string>>(() => new Set(AIRCRAFT.map(a => a.tail)));
   const [filterOpen, setFilterOpen] = useState(false);
@@ -507,23 +421,35 @@ export default function SchedulePage() {
   const nowMin = useNowMinutes();
   const metar = useMetar('KPDK');
 
+  const weekStart = sundayOfWeek(selectedDate);
+  const days      = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const fetchKey  = viewMode === 'week'
+    ? `week-${toDateParam(weekStart)}`
+    : `day-${toDateParam(selectedDate)}`;
+
   useEffect(() => {
     if (!session) return;
     setLoading(true);
     setError(null);
-    getSchedule(session.userid, session.session, selectedDate, addDays(selectedDate, 1))
+    const start = viewMode === 'week' ? weekStart : selectedDate;
+    const end   = viewMode === 'week' ? addDays(weekStart, 7) : addDays(selectedDate, 1);
+    getSchedule(session.userid, session.session, start, end)
       .then(data => { setEvents(data); setLoading(false); })
-      .catch(err => { setError(String(err)); setLoading(false); });
-  }, [selectedDate, session]);
+      .catch(err  => { setError(String(err)); setLoading(false); });
+  // weekStart/selectedDate are stable for a given fetchKey
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchKey, session]);
 
   const eventsByTail = events.reduce<Record<string, ScheduleEvent[]>>((acc, ev) => {
     if (ev.tail) (acc[ev.tail] ??= []).push(ev);
     return acc;
   }, {});
 
-  const today = isToday(selectedDate);
-  const allSelected = selectedTails.size === AIRCRAFT.length;
+  const today           = isToday(selectedDate);
+  const allSelected     = selectedTails.size === AIRCRAFT.length;
   const visibleAircraft = AIRCRAFT.filter(a => selectedTails.has(a.tail));
+  const showTodayBtn    = viewMode === 'day' ? !today : !days.some(d => isToday(d));
+  const dateLabel       = viewMode === 'week' ? weekRangeLabel(days) : formatDayLabel(selectedDate);
 
   function toggleTail(tail: string) {
     setSelectedTails(prev => {
@@ -531,6 +457,13 @@ export default function SchedulePage() {
       if (next.has(tail)) { next.delete(tail); } else { next.add(tail); }
       return next;
     });
+  }
+
+  function prevPeriod() {
+    setSelectedDate(d => addDays(viewMode === 'week' ? weekStart : d, viewMode === 'week' ? -7 : -1));
+  }
+  function nextPeriod() {
+    setSelectedDate(d => addDays(viewMode === 'week' ? weekStart : d, viewMode === 'week' ? 7 : 1));
   }
 
   const filteredEvents = events.filter(ev => !ev.tail || selectedTails.has(ev.tail));
@@ -542,17 +475,17 @@ export default function SchedulePage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border bg-card" style={{ padding: '10px 16px', gap: 12, flexWrap: 'wrap' as const }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
-          {/* Date navigator */}
+          {/* Date / week navigator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', borderRadius: 8, padding: '4px 5px' }}>
             <button
-              onClick={() => setSelectedDate(d => addDays(d, -1))}
+              onClick={prevPeriod}
               style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
             >‹</button>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger
-                style={{ fontWeight: 700, fontSize: 14, minWidth: 170, textAlign: 'center', userSelect: 'none', color: 'var(--foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 5 }}
+                style={{ fontWeight: 700, fontSize: 14, minWidth: viewMode === 'week' ? 190 : 170, textAlign: 'center', userSelect: 'none', color: 'var(--foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 5 }}
               >
-                {formatDayLabel(selectedDate)}
+                {dateLabel}
               </PopoverTrigger>
               <PopoverContent align="start" style={{ width: 'auto', padding: 0 }}>
                 <Calendar
@@ -566,12 +499,11 @@ export default function SchedulePage() {
               </PopoverContent>
             </Popover>
             <button
-              onClick={() => setSelectedDate(d => addDays(d, 1))}
+              onClick={nextPeriod}
               style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
             >›</button>
           </div>
-          {/* Today button — only when not on today */}
-          {!today && (
+          {showTodayBtn && (
             <button
               onClick={() => setSelectedDate(startOfDay(new Date()))}
               style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 13px', cursor: 'pointer', background: 'var(--card)' }}
@@ -582,6 +514,17 @@ export default function SchedulePage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Day / Week toggle */}
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            <button
+              onClick={() => setViewMode('day')}
+              style={{ padding: '6px 14px', background: viewMode === 'day' ? '#003057' : 'var(--card)', color: viewMode === 'day' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+            >Day</button>
+            <button
+              onClick={() => setViewMode('week')}
+              style={{ padding: '6px 14px', background: viewMode === 'week' ? '#003057' : 'var(--card)', color: viewMode === 'week' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderLeft: '1px solid var(--border)' }}
+            >Week</button>
+          </div>
           {/* Aircraft filter */}
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger style={{
@@ -619,7 +562,6 @@ export default function SchedulePage() {
               ))}
             </PopoverContent>
           </Popover>
-
         </div>
       </div>
 
@@ -648,17 +590,37 @@ export default function SchedulePage() {
           </div>
         )}
         {!loading && !error && (
-          portrait
-            ? <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
-            : <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
+          viewMode === 'week'
+            ? (
+              <div style={{ overflowX: 'auto' }}>
+                <WeekGrid
+                  days={days}
+                  events={filteredEvents}
+                  visibleAircraft={visibleAircraft}
+                  onSelectDay={day => { setSelectedDate(day); setViewMode('day'); }}
+                />
+              </div>
+            )
+            : portrait
+              ? <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
+              : <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
         )}
       </div>
 
       {/* Footer */}
       {!loading && !error && (
         <div className="flex items-center justify-between border-t border-border bg-muted" style={{ padding: '8px 18px', fontSize: 11, color: 'var(--muted-foreground)' }}>
-          <span>{visibleAircraft.length} aircraft · {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''}</span>
-          <span>Local {localTime()} · {zuluTime()}</span>
+          {viewMode === 'week' ? (
+            <>
+              <span>{visibleAircraft.length} aircraft · {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} this week</span>
+              <span>Each cell is a 6a–midnight timeline. Tap a cell to switch to day view.</span>
+            </>
+          ) : (
+            <>
+              <span>{visibleAircraft.length} aircraft · {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''}</span>
+              <span>Local {localTime()} · {zuluTime()}</span>
+            </>
+          )}
         </div>
       )}
     </div>
