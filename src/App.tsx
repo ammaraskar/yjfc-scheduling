@@ -3,6 +3,7 @@ import { useHashLocation } from 'wouter/use-hash-location'
 import { AuthProvider, useAuth } from './auth'
 import PWABadge from './PWABadge.tsx'
 import LoginPage from './pages/LoginPage.tsx'
+import SchedulePage from './pages/SchedulePage.tsx'
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isLoggedIn } = useAuth();
@@ -16,7 +17,7 @@ function AppRoutes() {
       <Route path="/login">
         {isLoggedIn ? <Redirect to="/schedule" /> : <LoginPage />}
       </Route>
-      <Route path="/schedule" component={() => <ProtectedRoute component={() => <div>Schedule</div>} />} />
+      <Route path="/schedule" component={() => <ProtectedRoute component={SchedulePage} />} />
       <Route>
         <Redirect to={isLoggedIn ? '/schedule' : '/login'} />
       </Route>
