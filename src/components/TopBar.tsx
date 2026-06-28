@@ -1,5 +1,7 @@
 import { useLocation, Link } from 'wouter'
+import { Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/auth'
+import { useTheme } from '@/theme'
 import type { UserInfo } from '@/api'
 
 function getInitials(info: UserInfo): string {
@@ -13,7 +15,12 @@ const NAV_LINKS = [
 
 export default function TopBar() {
   const { userInfo, logout } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const [location] = useLocation();
+
+  function toggleTheme() {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  }
 
   const initials = userInfo ? getInitials(userInfo) : '';
   const displayName = userInfo ? `${userInfo.firstName} ${userInfo.lastName}`.trim() : '';
@@ -70,6 +77,16 @@ export default function TopBar() {
                 <span className="font-semibold hidden md:inline">{displayName}</span>
               </div>
             )}
+            <button
+              onClick={toggleTheme}
+              className="w-[30px] h-[30px] flex items-center justify-center rounded cursor-pointer transition-colors"
+              style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {resolvedTheme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
             <button
               onClick={logout}
               className="text-xs font-medium px-3 py-1.5 rounded cursor-pointer transition-colors"

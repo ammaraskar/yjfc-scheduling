@@ -58,18 +58,14 @@ function statusBadge(status: AircraftStatus, note: string) {
 function StatCard({ label, value, valueColor, loading }: { label: string; value: string; valueColor?: string; loading?: boolean }) {
   return (
     <div
-      className="rounded-[8px] p-[7px_9px] md:p-[9px_11px]"
-      style={{ background: '#f7f9fb', border: '1px solid #eef1f4' }}
+      className="rounded-[8px] p-[7px_9px] md:p-[9px_11px] border border-border bg-muted"
     >
-      <div
-        className="text-[9.5px] md:text-[10px] font-semibold uppercase tracking-[0.05em] mb-[1px] md:mb-[2px]"
-        style={{ color: '#8a94a0' }}
-      >
+      <div className="text-[9.5px] md:text-[10px] font-semibold uppercase tracking-[0.05em] mb-[1px] md:mb-[2px] text-muted-foreground">
         {label}
       </div>
       <div
         className="font-mono font-semibold text-[13.5px] md:text-[15px]"
-        style={{ color: loading ? '#cdd5dd' : (valueColor ?? '#1a2430') }}
+        style={{ color: loading ? 'var(--border)' : (valueColor ?? 'var(--foreground)') }}
       >
         {loading ? '···' : value}
       </div>
@@ -80,11 +76,10 @@ function StatCard({ label, value, valueColor, loading }: { label: string; value:
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
     <div
-      className="flex justify-between text-[12.5px] md:text-[13px] pb-[6px] md:pb-[7px]"
-      style={{ borderBottom: '1px solid #f1f4f7' }}
+      className="flex justify-between text-[12.5px] md:text-[13px] pb-[6px] md:pb-[7px] border-b border-border"
     >
-      <span style={{ color: '#8a94a0' }}>{label}</span>
-      <span className="font-semibold text-right" style={{ color: '#1a2430', maxWidth: '60%' }}>{value}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold text-right text-foreground" style={{ maxWidth: '60%' }}>{value}</span>
     </div>
   );
 }
@@ -98,22 +93,22 @@ interface AirworthinessRowProps {
 
 function AirworthinessRow({ label, value, variant, loading }: AirworthinessRowProps) {
   const styles: Record<'ok' | 'warn' | 'na', React.CSSProperties> = {
-    ok: { background: '#f7f9fb', border: '1px solid #eef1f4' },
+    ok: { background: 'var(--muted)', border: '1px solid var(--border)' },
     warn: { background: '#fff8ec', border: '1px solid #f0e2c0' },
-    na: { background: '#f7f9fb', border: '1px solid #eef1f4' },
+    na: { background: 'var(--muted)', border: '1px solid var(--border)' },
   };
   const valueColor: Record<'ok' | 'warn' | 'na', string> = {
     ok: '#1f7a45',
     warn: '#9a6b00',
-    na: '#9aa4ae',
+    na: 'var(--muted-foreground)',
   };
   return (
     <div
       className="flex items-center justify-between rounded-[7px] p-[7px_9px] md:p-[8px_11px] text-[12.5px] md:text-[13px]"
       style={styles[variant]}
     >
-      <span style={{ color: '#3a4654' }}>{label}</span>
-      <span className="font-semibold font-mono text-[12px]" style={{ color: loading ? '#cdd5dd' : valueColor[variant] }}>
+      <span className="text-foreground">{label}</span>
+      <span className="font-semibold font-mono text-[12px]" style={{ color: loading ? 'var(--border)' : valueColor[variant] }}>
         {loading ? '···' : value}
       </span>
     </div>
@@ -137,14 +132,14 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
 
   if (!aircraft) {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: '#f7f9fb' }}>
+      <div className="min-h-screen flex flex-col bg-muted">
         <TopBar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="font-mono font-bold text-[24px] mb-2" style={{ color: '#003057' }}>{tail}</div>
-            <div style={{ color: '#8a94a0' }}>Aircraft not found.</div>
+            <div className="text-muted-foreground">Aircraft not found.</div>
             <Link href="/aircraft">
-              <span className="text-sm font-semibold cursor-pointer mt-4 block" style={{ color: '#003057' }}>
+              <span className="text-sm font-semibold cursor-pointer mt-4 block text-foreground hover:underline">
                 ← Back to Aircraft
               </span>
             </Link>
@@ -187,40 +182,37 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
   const liveSquawks = liveData?.squawks ?? null;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#f7f9fb' }}>
+    <div className="min-h-screen flex flex-col bg-muted">
       <TopBar />
 
       <main className="flex-1 px-2 py-3 md:px-6 md:py-6 max-w-[1200px] mx-auto w-full">
         {/* Breadcrumb */}
-        <div className="flex items-center flex-wrap gap-[7px] text-[11.5px] md:text-[13px] mb-3 md:mb-5" style={{ color: '#8a94a0' }}>
+        <div className="flex items-center flex-wrap gap-[7px] text-[11.5px] md:text-[13px] mb-3 md:mb-5 text-muted-foreground">
           <Link href="/schedule"><span className="cursor-pointer hover:underline">Schedule</span></Link>
-          <span style={{ color: '#cdd5dd' }}>/</span>
+          <span className="text-border">/</span>
           <Link href="/aircraft"><span className="cursor-pointer hover:underline">Aircraft</span></Link>
-          <span style={{ color: '#cdd5dd' }}>/</span>
-          <span className="font-mono font-bold" style={{ color: '#003057' }}>{aircraft.tail}</span>
+          <span className="text-border">/</span>
+          <span className="font-mono font-bold text-foreground">{aircraft.tail}</span>
         </div>
 
         <div
-          className="bg-white rounded-[8px] md:rounded-[10px] overflow-hidden"
-          style={{ border: '1px solid #e6e9ee', boxShadow: '0 6px 24px rgba(16,33,56,0.08)' }}
+          className="bg-card rounded-[8px] md:rounded-[10px] overflow-hidden border border-border"
+          style={{ boxShadow: '0 6px 24px rgba(16,33,56,0.08)' }}
         >
           {/* Hero */}
-          <div className="flex flex-col gap-[11px] md:flex-row md:gap-[22px] p-[11px] md:p-[22px]" style={{ borderBottom: '1px solid #eef1f4' }}>
+          <div className="flex flex-col gap-[11px] md:flex-row md:gap-[22px] p-[11px] md:p-[22px] border-b border-border">
             {/* Photo */}
             {aircraft.photo ? (
               <img
                 src={aircraft.photo}
                 alt={aircraft.tail}
-                className="rounded-[9px] md:rounded-[10px] shrink-0 object-cover w-full md:w-[330px] h-[168px] md:h-[200px]"
-                style={{ border: '1px solid #e3e7ec' }}
+                className="rounded-[9px] md:rounded-[10px] shrink-0 object-cover w-full md:w-[330px] h-[168px] md:h-[200px] border border-border"
               />
             ) : (
               <div
-                className="rounded-[9px] md:rounded-[10px] shrink-0 flex items-center justify-center font-mono text-[11px] tracking-[0.05em] w-full md:w-[330px] h-[168px] md:h-[200px]"
+                className="rounded-[9px] md:rounded-[10px] shrink-0 flex items-center justify-center font-mono text-[11px] tracking-[0.05em] w-full md:w-[330px] h-[168px] md:h-[200px] text-muted-foreground border border-border"
                 style={{
-                  background: 'repeating-linear-gradient(135deg, #eef2f6 0 14px, #e6ebf1 14px 28px)',
-                  border: '1px solid #e3e7ec',
-                  color: '#9aa4ae',
+                  background: 'repeating-linear-gradient(135deg, var(--muted) 0 14px, var(--border) 14px 28px)',
                 }}
               >
                 {isSim ? 'SIMULATOR' : 'AIRCRAFT PHOTO'}
@@ -232,38 +224,38 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-[10px] flex-wrap">
                     <span
-                      className="font-mono font-semibold text-[22px] md:text-[28px]"
-                      style={{ color: '#003057', letterSpacing: '-0.01em' }}
+                      className="font-mono font-semibold text-[22px] md:text-[28px] text-foreground"
+                      style={{ letterSpacing: '-0.01em' }}
                     >
                       {aircraft.tail}
                     </span>
                     {statusBadge(aircraft.status, aircraft.statusNote)}
                   </div>
-                  <div className="text-[13px] md:text-[14px] mt-[2px] md:mt-[4px]" style={{ color: '#5b6675' }}>
+                  <div className="text-[13px] md:text-[14px] mt-[2px] md:mt-[4px] text-muted-foreground">
                     {aircraft.makeModel} · {aircraft.year}
                   </div>
                   {liveData?.location && (
-                    <div className="text-[11.5px] md:text-[12px] mt-[1px] md:mt-[2px]" style={{ color: '#8a94a0' }}>
+                    <div className="text-[11.5px] md:text-[12px] mt-[1px] md:mt-[2px] text-muted-foreground">
                       Based at {liveData.location}
                     </div>
                   )}
                 </div>
                 {!isSim && (
                   <div className="text-right shrink-0 pt-[1px]">
-                    <div className="font-mono font-bold text-[18px] md:text-[22px] leading-none" style={{ color: '#003057' }}>
+                    <div className="font-mono font-bold text-[18px] md:text-[22px] leading-none text-foreground">
                       ${aircraft.ratePerHour}
-                      <span className="text-[12px] md:text-[13px] font-normal ml-[1px]" style={{ color: '#9aa4ae' }}>/hr</span>
+                      <span className="text-[12px] md:text-[13px] font-normal ml-[1px] text-muted-foreground">/hr</span>
                     </div>
-                    <div className="text-[10.5px] md:text-[11px] mt-[1px]" style={{ color: '#9aa4ae' }}>wet · Hobbs</div>
+                    <div className="text-[10.5px] md:text-[11px] mt-[1px] text-muted-foreground">wet · Hobbs</div>
                   </div>
                 )}
                 {isSim && (
                   <div className="text-right shrink-0 pt-[1px]">
-                    <div className="font-mono font-bold text-[18px] md:text-[22px] leading-none" style={{ color: '#003057' }}>
+                    <div className="font-mono font-bold text-[18px] md:text-[22px] leading-none text-foreground">
                       ${aircraft.ratePerHour}
-                      <span className="text-[12px] md:text-[13px] font-normal ml-[1px]" style={{ color: '#9aa4ae' }}>/hr</span>
+                      <span className="text-[12px] md:text-[13px] font-normal ml-[1px] text-muted-foreground">/hr</span>
                     </div>
-                    <div className="text-[10.5px] md:text-[11px] mt-[1px]" style={{ color: '#9aa4ae' }}>FAA AATD</div>
+                    <div className="text-[10.5px] md:text-[11px] mt-[1px] text-muted-foreground">FAA AATD</div>
                   </div>
                 )}
               </div>
@@ -285,7 +277,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                   />
                 </div>
               ) : (
-                <div className="mt-[12px] md:mt-[18px] p-[10px] md:p-[12px] rounded-[8px] text-[12.5px] md:text-[13px]" style={{ background: '#f7f9fb', border: '1px solid #eef1f4', color: '#5b6675' }}>
+                <div className="mt-[12px] md:mt-[18px] p-[10px] md:p-[12px] rounded-[8px] text-[12.5px] md:text-[13px] bg-muted border border-border text-muted-foreground">
                   Redbird simulator · Located in the club office
                 </div>
               )}
@@ -295,14 +287,11 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
           {/* Body */}
           <div className="flex flex-col md:flex-row">
             {/* Left column */}
-            <div className="order-2 md:order-1 flex-1 p-[11px] md:p-[20px_22px] border-t md:border-t-0 md:border-r border-[#eef1f4] flex flex-col gap-[16px] md:gap-[22px]">
+            <div className="order-2 md:order-1 flex-1 p-[11px] md:p-[20px_22px] border-t md:border-t-0 md:border-r border-border flex flex-col gap-[16px] md:gap-[22px]">
 
               {/* Specifications */}
               <div className="order-2 md:order-1">
-                <div
-                  className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[8px] md:mb-[12px]"
-                  style={{ color: '#8a94a0' }}
-                >
+                <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[8px] md:mb-[12px] text-muted-foreground">
                   Specifications
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[11px_26px]">
@@ -316,10 +305,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
               {/* Airworthiness */}
               {!isSim && (
                 <div className="order-3 md:order-2">
-                  <div
-                    className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[8px] md:mb-[12px]"
-                    style={{ color: '#8a94a0' }}
-                  >
+                  <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[8px] md:mb-[12px] text-muted-foreground">
                     Airworthiness
                   </div>
                   <div className="flex flex-col gap-[8px]">
@@ -345,10 +331,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
               {/* Squawks */}
               <div className="order-1 md:order-3">
                 <div className="flex items-center gap-[8px] mb-[8px] md:mb-[12px]">
-                  <span
-                    className="text-[11px] font-bold uppercase tracking-[0.07em]"
-                    style={{ color: '#8a94a0' }}
-                  >
+                  <span className="text-[11px] font-bold uppercase tracking-[0.07em] text-muted-foreground">
                     Open squawks
                   </span>
                   {liveSquawks !== null && liveSquawks.length > 0 && (
@@ -370,18 +353,12 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                 </div>
 
                 {loadingLive && liveSquawks === null ? (
-                  <div
-                    className="rounded-[8px] p-[9px_11px] md:p-[11px_13px] text-[12.5px] md:text-[13px]"
-                    style={{ background: '#f7f9fb', border: '1px solid #eef1f4', color: '#cdd5dd' }}
-                  >
+                  <div className="rounded-[8px] p-[9px_11px] md:p-[11px_13px] text-[12.5px] md:text-[13px] bg-muted border border-border text-muted-foreground">
                     Loading squawks…
                   </div>
                 ) : liveSquawks !== null ? (
                   liveSquawks.length === 0 ? (
-                    <div
-                      className="rounded-[8px] p-[9px_11px] md:p-[11px_13px] text-[12.5px] md:text-[13px]"
-                      style={{ background: '#f7f9fb', border: '1px solid #eef1f4', color: '#8a94a0' }}
-                    >
+                    <div className="rounded-[8px] p-[9px_11px] md:p-[11px_13px] text-[12.5px] md:text-[13px] bg-muted border border-border text-muted-foreground">
                       No open squawks
                     </div>
                   ) : (
@@ -414,7 +391,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                                     <div className="flex gap-[8px] items-baseline">
                                       <span
                                         className="font-mono text-[10.5px] shrink-0 rounded-[4px] px-[5px] py-[1px]"
-                                        style={{ background: '#f1f4f7', color: '#8a94a0' }}
+                                        style={{ background: 'rgba(0,0,0,0.07)', color: '#5b6675' }}
                                       >
                                         {entry.date}
                                       </span>
@@ -423,10 +400,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                                       </span>
                                     </div>
                                     {entry.author && (
-                                      <div
-                                        className="text-[10.5px] md:text-[11px] mt-[1px] md:mt-[2px] pl-[49px] md:pl-[55px]"
-                                        style={{ color: '#8a94a0' }}
-                                      >
+                                      <div className="text-[10.5px] md:text-[11px] mt-[1px] md:mt-[2px] pl-[49px] md:pl-[55px]" style={{ color: '#8a94a0' }}>
                                         — {entry.author}
                                       </div>
                                     )}
@@ -442,10 +416,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                 ) : (
                   // Fall back to static squawks
                   aircraft.squawks.length === 0 ? (
-                    <div
-                      className="rounded-[8px] p-[9px_11px] md:p-[11px_13px] text-[12.5px] md:text-[13px]"
-                      style={{ background: '#f7f9fb', border: '1px solid #eef1f4', color: '#8a94a0' }}
-                    >
+                    <div className="rounded-[8px] p-[9px_11px] md:p-[11px_13px] text-[12.5px] md:text-[13px] bg-muted border border-border text-muted-foreground">
                       No open squawks
                     </div>
                   ) : (
@@ -478,28 +449,25 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
               {/* Scheduled Maintenance */}
               {liveData && liveData.maintenanceItems.length > 0 && (
                 <div className="order-4 md:order-4">
-                  <div
-                    className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[8px] md:mb-[12px]"
-                    style={{ color: '#8a94a0' }}
-                  >
+                  <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[8px] md:mb-[12px] text-muted-foreground">
                     Scheduled Maintenance
                   </div>
-                  <div className="overflow-x-auto rounded-[8px]" style={{ border: '1px solid #eef1f4' }}>
+                  <div className="overflow-x-auto rounded-[8px] border border-border">
                     <table className="w-full text-[12.5px]" style={{ borderCollapse: 'collapse' }}>
                       <thead>
-                        <tr style={{ background: '#f7f9fb', borderBottom: '1px solid #eef1f4' }}>
-                          <th className="text-left p-[7px_12px] font-semibold" style={{ color: '#5b6675' }}>Item</th>
-                          <th className="text-right p-[7px_12px] font-semibold" style={{ color: '#5b6675' }}>Date Due</th>
-                          <th className="text-right p-[7px_12px] font-semibold" style={{ color: '#5b6675' }}>Time Due</th>
+                        <tr className="bg-muted border-b border-border">
+                          <th className="text-left p-[7px_12px] font-semibold text-muted-foreground">Item</th>
+                          <th className="text-right p-[7px_12px] font-semibold text-muted-foreground">Date Due</th>
+                          <th className="text-right p-[7px_12px] font-semibold text-muted-foreground">Time Due</th>
                         </tr>
                       </thead>
                       <tbody>
                         {liveData.maintenanceItems.map((item, i) => (
                           <tr
                             key={i}
-                            style={{ borderTop: i > 0 ? '1px solid #f1f4f7' : undefined }}
+                            style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined }}
                           >
-                            <td className="p-[7px_12px]" style={{ color: '#1a2430' }}>
+                            <td className="p-[7px_12px] text-foreground">
                               {item.adUrl ? (
                                 <a
                                   href={item.adUrl}
@@ -513,10 +481,10 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                                 item.name
                               )}
                             </td>
-                            <td className="text-right p-[7px_12px] font-mono" style={{ color: '#5b6675' }}>
+                            <td className="text-right p-[7px_12px] font-mono text-muted-foreground">
                               {item.dateDue ?? '—'}
                             </td>
-                            <td className="text-right p-[7px_12px] font-mono" style={{ color: '#5b6675' }}>
+                            <td className="text-right p-[7px_12px] font-mono text-muted-foreground">
                               {item.timeDue !== null ? item.timeDue.toFixed(1) : '—'}
                             </td>
                           </tr>
@@ -525,7 +493,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                     </table>
                   </div>
                   {liveData.lastMaintEntry && (
-                    <div className="text-[11.5px] mt-[6px]" style={{ color: '#8a94a0' }}>
+                    <div className="text-[11.5px] mt-[6px] text-muted-foreground">
                       {liveData.lastMaintEntry}
                     </div>
                   )}
@@ -534,7 +502,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
             </div>
 
             {/* Right rail */}
-            <div className="order-1 md:order-2 shrink-0 w-full md:w-[300px] p-[11px] md:p-[20px]" style={{ background: '#fbfcfd' }}>
+            <div className="order-1 md:order-2 shrink-0 w-full md:w-[300px] p-[11px] md:p-[20px] bg-muted">
               <button
                 className="block w-full text-center text-[13.5px] md:text-[14px] font-bold rounded-[9px] py-[10px] md:py-[12px] mb-[7px] md:mb-[8px] cursor-pointer"
                 style={{ color: '#003057', background: '#EAAA00', boxShadow: '0 1px 2px rgba(234,170,0,0.4)' }}
@@ -542,23 +510,16 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                 + Reserve {aircraft.tail}
               </button>
               <button
-                className="block w-full text-center text-[12.5px] md:text-[13px] font-semibold rounded-[9px] py-[8px] md:py-[9px] mb-[12px] md:mb-[20px] cursor-pointer"
-                style={{ color: '#003057', border: '1px solid #cdd5dd', background: '#fff' }}
+                className="block w-full text-center text-[12.5px] md:text-[13px] font-semibold rounded-[9px] py-[8px] md:py-[9px] mb-[12px] md:mb-[20px] cursor-pointer border border-border bg-card text-foreground"
               >
                 Find next available time
               </button>
 
               {/* Upcoming reservations placeholder */}
-              <div
-                className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[11px]"
-                style={{ color: '#8a94a0' }}
-              >
+              <div className="text-[11px] font-bold uppercase tracking-[0.07em] mb-[11px] text-muted-foreground">
                 Upcoming reservations
               </div>
-              <div
-                className="rounded-[8px] p-[12px] text-[12px] text-center"
-                style={{ background: '#f7f9fb', border: '1px solid #eef1f4', color: '#9aa4ae' }}
-              >
+              <div className="rounded-[8px] p-[12px] text-[12px] text-center bg-muted border border-border text-muted-foreground">
                 No upcoming reservations
               </div>
             </div>

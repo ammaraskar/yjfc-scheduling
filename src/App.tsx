@@ -1,6 +1,7 @@
 import { Router, Route, Switch, Redirect } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
 import { AuthProvider, useAuth } from './auth'
+import { ThemeProvider } from './theme'
 import PWABadge from './PWABadge.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import SchedulePage from './pages/SchedulePage.tsx'
@@ -34,12 +35,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router hook={useHashLocation}>
-      <AuthProvider>
-        <AppRoutes />
-        <PWABadge />
-      </AuthProvider>
-    </Router>
+    <ThemeProvider>
+      <Router hook={useHashLocation}>
+        <AuthProvider>
+          <AppRoutes />
+          <PWABadge />
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   )
 }
 

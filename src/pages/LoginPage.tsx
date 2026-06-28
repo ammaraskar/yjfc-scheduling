@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f7f9fb]">
+    <div className="min-h-screen flex items-center justify-center bg-muted">
       <div className="w-full max-w-sm px-4">
         <div className="flex flex-col items-center mb-8">
           <div
@@ -47,21 +47,21 @@ export default function LoginPage() {
           <h1 className="text-xl font-bold text-center" style={{ color: '#003057' }}>
             Yellow Jacket Flying Club
           </h1>
-          <p className="text-sm mt-1" style={{ color: '#5b6675' }}>
+          <p className="text-sm mt-1 text-muted-foreground">
             KPDK · Dekalb-Peachtree Airport
           </p>
         </div>
 
-        <Card className="shadow-lg border-[#e6e9ee]">
+        <Card className="shadow-lg border-border">
           <CardHeader className="pb-4">
-            <h2 className="text-base font-semibold" style={{ color: '#1a2430' }}>
+            <h2 className="text-base font-semibold text-foreground">
               Sign in to your ScheduleMaster account
             </h2>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="username" className="text-sm font-medium" style={{ color: '#3a4654' }}>
+                <Label htmlFor="username" className="text-sm font-medium text-foreground">
                   Username
                 </Label>
                 <Input
@@ -72,12 +72,12 @@ export default function LoginPage() {
                   placeholder="your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="border-[#e1e6eb] focus-visible:ring-[#EAAA00]"
+                  className="focus-visible:ring-[#EAAA00]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-sm font-medium" style={{ color: '#3a4654' }}>
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">
                   Password
                 </Label>
                 <Input
@@ -88,7 +88,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="border-[#e1e6eb] focus-visible:ring-[#EAAA00]"
+                  className="focus-visible:ring-[#EAAA00]"
                 />
               </div>
 
@@ -110,7 +110,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="mt-5 text-center text-xs" style={{ color: '#8a94a0' }}>
+            <p className="mt-5 text-center text-xs text-muted-foreground">
               Need access?{' '}
               <a href="https://yjfc.org/join/" className="font-medium hover:underline" style={{ color: '#003057' }}>
                 How to join YJFC

@@ -16,8 +16,8 @@ function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
   return (
     <Link href={`/aircraft/${aircraft.tail}`}>
       <div
-        className="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-shadow"
-        style={{ borderColor: '#e6e9ee', boxShadow: '0 2px 8px rgba(16,33,56,0.06)' }}
+        className="bg-card rounded-[10px] border border-border overflow-hidden cursor-pointer transition-shadow"
+        style={{ boxShadow: '0 2px 8px rgba(16,33,56,0.06)' }}
         onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 6px 20px rgba(16,33,56,0.12)')}
         onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(16,33,56,0.06)')}
       >
@@ -31,11 +31,10 @@ function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
           />
         ) : (
           <div
-            className="w-full flex items-center justify-center font-mono text-[11px] tracking-[0.05em]"
+            className="w-full flex items-center justify-center font-mono text-[11px] tracking-[0.05em] text-muted-foreground"
             style={{
               height: 140,
-              background: 'repeating-linear-gradient(135deg, #eef2f6 0 14px, #e6ebf1 14px 28px)',
-              color: '#9aa4ae',
+              background: 'repeating-linear-gradient(135deg, var(--muted) 0 14px, var(--border) 14px 28px)',
             }}
           >
             {aircraft.type === 'sim' ? 'SIMULATOR' : 'AIRCRAFT PHOTO'}
@@ -46,17 +45,17 @@ function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
           {/* Tail + type */}
           <div className="flex items-baseline gap-[8px] mb-[6px]">
             <span
-              className="font-mono font-semibold text-[18px]"
-              style={{ color: '#003057', letterSpacing: '-0.01em' }}
+              className="font-mono font-semibold text-[18px] text-foreground"
+              style={{ letterSpacing: '-0.01em' }}
             >
               {aircraft.tail}
             </span>
-            <span className="text-[11px]" style={{ color: '#8a94a0' }}>
+            <span className="text-[11px] text-muted-foreground">
               {aircraft.makeModel.split(' ').slice(1, 3).join(' ')}
             </span>
           </div>
 
-          <div className="text-[12px] mb-[10px]" style={{ color: '#5b6675' }}>
+          <div className="text-[12px] mb-[10px] text-muted-foreground">
             {aircraft.makeModel} · {aircraft.year}
           </div>
 
@@ -67,19 +66,14 @@ function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
                 className="w-[8px] h-[8px] rounded-full shrink-0"
                 style={{ background: color }}
               />
-              <span className="text-[12px] font-medium" style={{ color: '#3a4654' }}>
+              <span className="text-[12px] font-medium text-foreground">
                 {statusLabel(aircraft.status)}
               </span>
             </div>
-            <span
-              className="font-mono font-semibold text-[13px]"
-              style={{ color: '#003057' }}
-            >
+            <span className="font-mono font-semibold text-[13px] text-foreground">
               ${aircraft.ratePerHour}/hr
             </span>
           </div>
-
-
         </div>
       </div>
     </Link>
@@ -88,18 +82,18 @@ function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
 
 export default function AircraftPage() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#f7f9fb' }}>
+    <div className="min-h-screen flex flex-col bg-muted">
       <TopBar />
 
       <main className="flex-1 px-6 py-6 max-w-[1400px] mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-bold text-[22px]" style={{ color: '#003057' }}>Aircraft</h1>
-            <p className="text-[13px] mt-[2px]" style={{ color: '#8a94a0' }}>
+            <h1 className="font-bold text-[22px] text-foreground">Aircraft</h1>
+            <p className="text-[13px] mt-[2px] text-muted-foreground">
               {AIRCRAFT.length} aircraft · KPDK
             </p>
           </div>
-          <div className="flex items-center gap-[8px] text-[12px] font-medium" style={{ color: '#5b6675' }}>
+          <div className="flex items-center gap-[8px] text-[12px] font-medium text-muted-foreground">
             <span className="flex items-center gap-[5px]">
               <span className="w-[8px] h-[8px] rounded-full" style={{ background: '#1f9d57' }} />
               Available
