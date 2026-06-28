@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import TopBar from '@/components/TopBar'
-import { getSchedule, type ScheduleEvent } from '@/api'
+import { getSchedule, EventClass, type ScheduleEvent } from '@/api'
 import { useAuth } from '@/auth'
 import { AIRCRAFT, statusColor } from '@/data/aircraft'
 
@@ -92,8 +92,8 @@ type EventVisual = { bg: string; text: string; subText: string; dashed?: boolean
 
 const MAINT_STRIPE = 'repeating-linear-gradient(45deg,#8a3d2f 0 9px,#7c3526 9px 18px)';
 
-function eventVisual(dest: string, className: string): EventVisual {
-  if (className === 'maint') {
+function eventVisual(dest: string, classNames: EventClass[]): EventVisual {
+  if (classNames.includes(EventClass.Maint)) {
     return { bg: MAINT_STRIPE, text: '#ffffff', subText: 'rgba(255,255,255,0.85)', stripe: true };
   }
   const { type } = parseDestType(dest);
@@ -130,11 +130,11 @@ function HorizEvent({ event }: { event: ScheduleEvent }) {
   const width = toLeftPct(endMin) - left;
   if (width < 0.3) return null;
 
-  const vis  = eventVisual(event.dest, event.className);
+  const vis  = eventVisual(event.dest, event.classNames);
   const { sub } = parseDestType(event.dest);
   const name = event.name.trim() || sub;
   const detail = event.tagMsg.trim();
-  const predone = event.className === 'predone';
+  const predone = event.classNames.includes(EventClass.Predone);
 
   return (
     <div style={{
@@ -239,10 +239,10 @@ function VertEvent({ event }: { event: ScheduleEvent }) {
   const heightPct = (endMin - startMin) / GRID_SPAN * 100;
   if (heightPct < 0.3) return null;
 
-  const vis  = eventVisual(event.dest, event.className);
+  const vis  = eventVisual(event.dest, event.classNames);
   const { sub } = parseDestType(event.dest);
   const name = event.name.trim() || sub;
-  const predone = event.className === 'predone';
+  const predone = event.classNames.includes(EventClass.Predone);
 
   return (
     <div style={{
@@ -322,7 +322,7 @@ function VerticalView({ eventsByTail, nowMin }: { eventsByTail: Record<string, S
 
 function ListEvent({ event }: { event: ScheduleEvent }) {
   const { type, sub } = parseDestType(event.dest);
-  const vis  = eventVisual(event.dest, event.className);
+  const vis  = eventVisual(event.dest, event.classNames);
   const name = event.name.trim() || sub;
   const detail = event.tagMsg.trim();
 

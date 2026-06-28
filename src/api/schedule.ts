@@ -1,6 +1,12 @@
 import { apiClient } from './client';
 import type { ApiFetch } from './client';
 
+export enum EventClass {
+  Maint   = 'maint',
+  Predone = 'predone',
+  Other   = 'other',
+}
+
 export interface ScheduleEvent {
   id: number;
   userId: string;
@@ -18,7 +24,7 @@ export interface ScheduleEvent {
   dateMade: string;
   madeByName: string;
   tagMsg: string;
-  className: string;
+  classNames: EventClass[];
   ruleExempt: boolean;
 }
 
@@ -48,7 +54,7 @@ function mapEvent(raw: any): ScheduleEvent {
     dateMade: raw.date_made ?? '',
     madeByName: raw.made_by_name ?? '',
     tagMsg: raw.tagMsg ?? '',
-    className: raw.className ?? '',
+    classNames: (raw.className ?? EventClass.Other).split(/\s+/).filter(Boolean).map((c: string) => c as EventClass),
     ruleExempt: raw.rule_exempt ?? false,
   };
 }

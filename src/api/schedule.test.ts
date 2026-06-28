@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getSchedule } from './schedule';
+import { getSchedule, EventClass } from './schedule';
 
 const RAW_EVENTS = [
   {
@@ -140,5 +140,13 @@ describe('getSchedule', () => {
     await expect(
       getSchedule('148772', 'S', new Date(2026, 5, 27), new Date(2026, 5, 28), 0, fetch),
     ).rejects.toThrow('getSchedule failed: 401');
+  });
+
+  it('parses multiple space-separated classNames', async () => {
+    const fetch = stubFetch([{ ...RAW_EVENTS[0], className: 'predone other' }]);
+    const events = await getSchedule('148772', 'S', new Date(2026, 5, 27), new Date(2026, 5, 28), 0, fetch);
+    expect(events[0].classNames).toContain(EventClass.Predone);
+    expect(events[0].classNames).toContain(EventClass.Other);
+    expect(events[0].classNames).toHaveLength(2);
   });
 });
