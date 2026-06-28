@@ -319,8 +319,14 @@ const ROW_H = 42; // px per hour
 
 function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate: Date }) {
   const { startMin, endMin } = eventMinutesForDay(event, selectedDate);
-  const topPct    = (startMin - GRID_START) / GRID_SPAN * 100;
-  const heightPct = (endMin - startMin) / GRID_SPAN * 100;
+  const clipsTop    = startMin < GRID_START;
+  const clipsBottom = endMin   > EVENT_EDGE_CLIP_END;
+
+  // Clamp to grid bounds (mirrors toLeftPct clamping in the horizontal view)
+  const visStart  = Math.max(startMin, GRID_START);
+  const visEnd    = Math.min(endMin, GRID_END);
+  const topPct    = (visStart - GRID_START) / GRID_SPAN * 100;
+  const heightPct = (visEnd - visStart) / GRID_SPAN * 100;
   if (heightPct < 0.3) return null;
 
   const vis  = eventVisual(event.dest, event.classNames);
@@ -328,8 +334,6 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
   const name = event.name.trim() || sub;
   const predone = event.classNames.includes(EventClass.Predone);
   const airport = parseDestAirport(event.dest);
-  const clipsTop    = startMin < GRID_START;
-  const clipsBottom = endMin   > EVENT_EDGE_CLIP_END;
   const rT = clipsTop    ? 0 : 6;
   const rB = clipsBottom ? 0 : 6;
   const tOff = clipsTop    ? 0 : 2;
