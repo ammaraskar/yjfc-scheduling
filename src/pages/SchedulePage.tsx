@@ -189,7 +189,7 @@ function HorizEvent({ event }: { event: ScheduleEvent }) {
         {name}
       </span>
       <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
-        {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#166534' }}> · ✓ precheck</span>}
+        {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
       </span>
     </div>
   );
