@@ -6,8 +6,9 @@ import { EventClass, type ScheduleEvent, parseMaintDescription } from '@/api'
 import type { Aircraft } from '@/data/aircraft'
 import { Wrench } from 'lucide-react'
 import { addDays, isToday } from '@/lib/dateUtils'
-import { eventVisual, parseDestType } from '@/lib/eventVisual'
+import { eventVisual, parseDestType, formatTimeRange } from '@/lib/eventVisual'
 import { eventMinutesForDay } from '@/lib/liveStatus'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,33 @@ const DAY_LABEL_HOURS = [8, 14, 20]; // 8a, 2p, 8p
 const NOW_LINE_COLOR = 'var(--club-gold)';
 const NOW_LINE_OPACITY = 0.5;
 const NOW_LINE_WIDTH = 1.5;
+
+// ─── Tooltip helpers ──────────────────────────────────────────────────────────
+
+function EventTooltip({ event }: { event: ScheduleEvent }) {
+  const isMaint = event.classNames.includes(EventClass.Maint) || event.classNames.includes(EventClass.Ovly);
+  const { type, sub } = parseDestType(event.dest);
+  const maintDesc = isMaint ? parseMaintDescription(event.info) : null;
+  
+  return (
+    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+      <div style={{ fontWeight: 600, marginBottom: 4 }}>{formatTimeRange(event)}</div>
+      {isMaint ? (
+        <>
+          <div style={{ color: 'var(--muted-foreground)' }}>Maintenance</div>
+          {maintDesc && <div style={{ marginTop: 2 }}>{maintDesc}</div>}
+        </>
+      ) : (
+        <>
+          <div><strong>Pilot:</strong> {event.name || 'Unknown'}</div>
+          {type && <div><strong>Type:</strong> {type}</div>}
+          {sub && <div><strong>Desc:</strong> {sub}</div>}
+          {event.tagMsg && <div><strong>CFI:</strong> {event.tagMsg}</div>}
+        </>
+      )}
+    </div>
+  );
+}
 
 function toTimePct(minutes: number): number {
   return Math.max(0, Math.min(100, (minutes - GRID_START) / GRID_SPAN * 100));
@@ -80,17 +108,23 @@ function MiniBar({ event, day }: { event: ScheduleEvent; day: Date }) {
 
   const vis = eventVisual(event.dest, event.classNames);
   return (
-    <div style={{
-      position: 'absolute',
-      top: '50%', transform: 'translateY(-50%)',
-      left: `calc(${left}% + ${MINI_BAR_INSET_PX}px)`,
-      width: `max(2px, calc(${width}% - ${MINI_BAR_INSET_PX * 2}px))`,
-      height: 26,
-      background: vis.bg,
-      borderRadius: 3,
-      border: vis.dashed ? '1px dashed #00355f' : undefined,
-      opacity: 0.9,
-    }} />
+    <Tooltip>
+      <TooltipTrigger style={{
+        position: 'absolute',
+        top: '50%', transform: 'translateY(-50%)',
+        left: `calc(${left}% + ${MINI_BAR_INSET_PX}px)`,
+        width: `max(2px, calc(${width}% - ${MINI_BAR_INSET_PX * 2}px))`,
+        height: 26,
+        background: vis.bg,
+        borderRadius: 3,
+        border: vis.dashed ? '1px dashed #00355f' : undefined,
+        opacity: 0.9,
+        cursor: 'pointer',
+      }} />
+      <TooltipContent>
+        <EventTooltip event={event} />
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -268,32 +302,38 @@ function SpanBanner({ event, startIdx, endIdx }: {
   const widthPct      = Math.max(0.5, rightPct - leftPct);
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: 5, bottom: 5,
-      left:  `${leftPct}%`,
-      width: `${widthPct}%`,
-      background: vis.bg,
-      border:     vis.dashed ? '1.5px dashed #00355f' : undefined,
-      borderLeft: predone ? '3px solid #16a34a' : (vis.dashed ? '1.5px dashed #00355f' : undefined),
-      borderRadius: 5,
-      padding: '0 8px',
-      display: 'flex', alignItems: 'center', gap: 5,
-      overflow: 'hidden',
-      color: vis.text,
-      boxSizing: 'border-box' as const,
-      boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.2)',
-    }}>
-      {isMaint && <Wrench size={12} style={{ flexShrink: 0 }} />}
-      <span style={{ fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>
-        {name}
-      </span>
-      {detail && (
-        <span style={{ fontSize: 11, color: vis.subText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 2 }}>
-          · {detail}
+    <Tooltip>
+      <TooltipTrigger style={{
+        position: 'absolute',
+        top: 5, bottom: 5,
+        left:  `${leftPct}%`,
+        width: `${widthPct}%`,
+        background: vis.bg,
+        border:     vis.dashed ? '1.5px dashed #00355f' : undefined,
+        borderLeft: predone ? '3px solid #16a34a' : (vis.dashed ? '1.5px dashed #00355f' : undefined),
+        borderRadius: 5,
+        padding: '0 8px',
+        display: 'flex', alignItems: 'center', gap: 5,
+        overflow: 'hidden',
+        color: vis.text,
+        boxSizing: 'border-box' as const,
+        boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.2)',
+        cursor: 'pointer',
+      }}>
+        {isMaint && <Wrench size={12} style={{ flexShrink: 0 }} />}
+        <span style={{ fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>
+          {name}
         </span>
-      )}
-    </div>
+        {detail && (
+          <span style={{ fontSize: 11, color: vis.subText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 2 }}>
+            · {detail}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent>
+        <EventTooltip event={event} />
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
