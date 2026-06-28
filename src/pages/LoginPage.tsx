@@ -107,7 +107,7 @@ export default function LoginPage() {
             <p className="mt-5 text-center text-xs text-muted-foreground">
               Need access?{' '}
               <a href="https://yjfc.org/join/" className="font-medium text-[#003057] hover:underline dark:text-[#f5c64f]">
-                How to join YJFC
+                Learn how to join YJFC
               </a>
             </p>
           </CardContent>
