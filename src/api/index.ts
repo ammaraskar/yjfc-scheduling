@@ -8,3 +8,5 @@ export { getResStatus, parseResStatus } from './resstatus';
 export type { ResStatus, LiveSquawk, MaintenanceItem } from './resstatus';
 export { getSchedule, EventClass } from './schedule';
 export type { ScheduleEvent } from './schedule';
+export { fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor } from './metar';
+export type { MetarResponse, MetarCloud } from './metar';

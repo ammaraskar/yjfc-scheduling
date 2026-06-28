@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
-import { getSchedule, EventClass, type ScheduleEvent } from '@/api'
+import { getSchedule, EventClass, type ScheduleEvent, fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor, type MetarResponse } from '@/api'
 import { eventMinutesForDay, liveStatus, statusDotColor } from '@/lib/liveStatus'
 import { useAuth } from '@/auth'
 import { AIRCRAFT } from '@/data/aircraft'
@@ -118,6 +118,23 @@ function eventVisual(dest: string, classNames: EventClass[]): EventVisual {
     default:
       return { bg: '#00355f', text: '#ffffff', subText: 'rgba(255,255,255,0.82)' };
   }
+}
+
+// ─── METAR hook ──────────────────────────────────────────────────────────────
+
+const METAR_REFRESH_MS = 5 * 60 * 1000;
+
+function useMetar(stationId: string): MetarResponse | null {
+  const [metar, setMetar] = useState<MetarResponse | null>(null);
+  useEffect(() => {
+    function load() {
+      fetchMetar(stationId).then(setMetar).catch(() => {/* silently ignore */});
+    }
+    load();
+    const id = setInterval(load, METAR_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [stationId]);
+  return metar;
 }
 
 // ─── Now line hook ───────────────────────────────────────────────────────────
@@ -425,6 +442,7 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const nowMin = useNowMinutes();
+  const metar = useMetar('KPDK');
 
   useEffect(() => {
     if (!session) return;
@@ -564,12 +582,15 @@ export default function SchedulePage() {
       </div>
 
       {/* Legend strip */}
-      <div className="flex items-center justify-end border-b border-border bg-muted" style={{ padding: '7px 18px', fontSize: 12, gap: 14, flexWrap: 'wrap' as const }}>
-        <LegendItem color="#00355f" label="Rental" />
-        <LegendItem color="var(--club-gold)" label="Training" />
-        <LegendItem color={undefined} label="Standby" dashed />
-        <LegendItem color={undefined} label="Maintenance" stripe />
-        <LegendItem color={OVLY_BG} label="Superseded" />
+      <div className="flex items-center justify-between border-b border-border bg-muted" style={{ padding: '7px 18px', fontSize: 12, gap: 14, flexWrap: 'wrap' as const }}>
+        <MetarStrip metar={metar} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
+          <LegendItem color="#00355f" label="Rental" />
+          <LegendItem color="var(--club-gold)" label="Training" />
+          <LegendItem color={undefined} label="Standby" dashed />
+          <LegendItem color={undefined} label="Maintenance" stripe />
+          <LegendItem color={OVLY_BG} label="Superseded" />
+        </div>
       </div>
 
       {/* Content */}
@@ -600,6 +621,33 @@ export default function SchedulePage() {
           <span>Local {localTime()} · {zuluTime()}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function MetarStrip({ metar }: { metar: MetarResponse | null }) {
+  if (!metar) return null;
+  const id = displayId(metar.icaoId);
+  const wind = formatWind(metar.wdir, metar.wspd, metar.wgst);
+  const vis = formatVisib(metar.visib);
+  const clouds = formatClouds(metar.clouds, metar.cover);
+  const catColor = fltCatColor(metar.fltCat);
+  const updated = formatUpdated(metar.receiptTime);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, color: 'var(--muted-foreground)' }}>
+      <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--foreground)' }}>{id}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: catColor, borderRadius: 4, padding: '1px 6px', lineHeight: '16px' }}>
+        {metar.fltCat}
+      </span>
+      <span style={{ fontWeight: 500 }}>Wind {wind}</span>
+      <span style={{ color: 'var(--border)' }}>·</span>
+      <span>{vis}</span>
+      <span style={{ color: 'var(--border)' }}>·</span>
+      <span>{clouds}</span>
+      <span style={{ color: 'var(--border)' }}>·</span>
+      <span>{metar.temp}°C</span>
+      <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.7 }}>Updated {updated}</span>
     </div>
   );
 }
