@@ -172,6 +172,33 @@ function useNowMinutes(): number {
   return min;
 }
 
+const NOW_LINE_COLOR = 'var(--club-gold)';
+const NOW_LINE_OPACITY = 0.7;
+const NOW_MARKER_OPACITY = 0.85;
+const NOW_LINE_THICKNESS = 2;
+const NOW_MARKER_SIZE = 10;
+const NOW_DASH_LEN = 6;
+const NOW_DASH_GAP = 4;
+
+const NOW_MARKER_OFFSET = -(NOW_MARKER_SIZE - NOW_LINE_THICKNESS) / 2;
+
+const NOW_LINE_STYLE = {
+  opacity: NOW_LINE_OPACITY,
+  pointerEvents: 'none' as const,
+  zIndex: 10,
+};
+
+const NOW_MARKER_STYLE = {
+  position: 'absolute' as const,
+  width: NOW_MARKER_SIZE,
+  height: NOW_MARKER_SIZE,
+  borderRadius: '50%',
+  background: NOW_LINE_COLOR,
+  opacity: NOW_MARKER_OPACITY,
+  border: '2px solid var(--card)',
+  boxShadow: `0 0 0 1px ${NOW_LINE_COLOR}`,
+};
+
 // ─── Event block styles ──────────────────────────────────────────────────────
 
 function formatTimeRange(event: ScheduleEvent): string {
@@ -246,8 +273,16 @@ function HorizNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const left = toLeftPct(nowMin);
   return (
-    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${left}%`, width: 2, background: 'var(--club-gold)', pointerEvents: 'none', zIndex: 10 }}>
-      <div style={{ position: 'absolute', top: -4, left: -4, width: 10, height: 10, borderRadius: '50%', background: 'var(--club-gold)', border: '2px solid var(--card)', boxShadow: '0 0 0 1px var(--club-gold)' }} />
+    <div style={{
+      ...NOW_LINE_STYLE,
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: `${left}%`,
+      width: NOW_LINE_THICKNESS,
+      backgroundImage: `repeating-linear-gradient(to bottom, ${NOW_LINE_COLOR} 0 ${NOW_DASH_LEN}px, transparent ${NOW_DASH_LEN}px ${NOW_DASH_LEN + NOW_DASH_GAP}px)`,
+    }}>
+      <div style={{ ...NOW_MARKER_STYLE, top: NOW_MARKER_OFFSET, left: NOW_MARKER_OFFSET }} />
     </div>
   );
 }
@@ -369,8 +404,16 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const topPct = (nowMin - GRID_START) / GRID_SPAN * 100;
   return (
-    <div style={{ position: 'absolute', left: VERT_TIME_COL_W, right: 0, top: `${topPct}%`, height: 2, background: 'var(--club-gold)', pointerEvents: 'none', zIndex: 10 }}>
-      <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: 'var(--club-gold)', border: '2px solid var(--card)' }} />
+    <div style={{
+      ...NOW_LINE_STYLE,
+      position: 'absolute',
+      left: VERT_TIME_COL_W,
+      right: 0,
+      top: `${topPct}%`,
+      height: NOW_LINE_THICKNESS,
+      backgroundImage: `repeating-linear-gradient(to right, ${NOW_LINE_COLOR} 0 ${NOW_DASH_LEN}px, transparent ${NOW_DASH_LEN}px ${NOW_DASH_LEN + NOW_DASH_GAP}px)`,
+    }}>
+      <div style={{ ...NOW_MARKER_STYLE, left: NOW_MARKER_OFFSET, top: NOW_MARKER_OFFSET }} />
     </div>
   );
 }
