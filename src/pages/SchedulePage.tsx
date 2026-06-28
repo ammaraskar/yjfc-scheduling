@@ -74,6 +74,7 @@ function parseDestType(dest: string): { type: string; sub: string } {
 const GRID_START = 6 * 60;    // 6 am
 const GRID_END   = 24 * 60;   // 12:00 am
 const GRID_SPAN  = GRID_END - GRID_START; // 1080 min
+const EVENT_EDGE_CLIP_END = 23 * 60 + 30; // Keep off-screen edge treatment at 11:30 pm
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // [6..23]
 const AIRCRAFT_COL_WIDTH = 150;
 
@@ -176,7 +177,7 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
   const detail = event.tagMsg.trim();
   const predone = event.classNames.includes(EventClass.Predone);
   const clipsLeft  = startMin < GRID_START;
-  const clipsRight = endMin   > GRID_END;
+  const clipsRight = endMin   > EVENT_EDGE_CLIP_END;
   const rL = clipsLeft  ? 0 : 7;
   const rR = clipsRight ? 0 : 7;
   const lOff = clipsLeft  ? 0 : 2;
@@ -295,7 +296,7 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
   const name = event.name.trim() || sub;
   const predone = event.classNames.includes(EventClass.Predone);
   const clipsTop    = startMin < GRID_START;
-  const clipsBottom = endMin   > GRID_END;
+  const clipsBottom = endMin   > EVENT_EDGE_CLIP_END;
   const rT = clipsTop    ? 0 : 6;
   const rB = clipsBottom ? 0 : 6;
   const tOff = clipsTop    ? 0 : 2;
