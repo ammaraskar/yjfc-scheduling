@@ -72,8 +72,8 @@ function parseDestType(dest: string): { type: string; sub: string } {
 // ─── Timeline constants ──────────────────────────────────────────────────────
 
 const GRID_START = 6 * 60;    // 6 am
-const GRID_END   = 23 * 60 + 30;  // 11:30 pm
-const GRID_SPAN  = GRID_END - GRID_START; // 1050 min
+const GRID_END   = 24 * 60;   // 12:00 am
+const GRID_SPAN  = GRID_END - GRID_START; // 1080 min
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // [6..23]
 const AIRCRAFT_COL_WIDTH = 150;
 
