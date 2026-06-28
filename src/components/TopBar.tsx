@@ -40,7 +40,7 @@ export default function TopBar() {
               YJ
             </div>
             <span className="font-bold text-[14px] md:text-[15px] tracking-[0.01em] truncate hidden sm:inline">Yellow Jacket Flying Club</span>
-            <span className="font-bold text-[14px] tracking-[0.01em] truncate sm:hidden">YJ Flying Club</span>
+            <span className="font-bold text-[14px] tracking-[0.01em] truncate sm:hidden">YJFC Flying Club</span>
             <div className="hidden md:block" style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.22)' }} />
 
             <nav className="hidden md:flex gap-[18px] text-[13px] font-medium ml-[2px]">

@@ -341,7 +341,7 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       top: `calc(${topPct}% + ${tOff}px)`, height: `calc(${heightPct}% - ${tOff + bOff}px)`,
       background: vis.bg,
       border: vis.dashed ? '1.5px dashed #00355f' : undefined,
-      borderLeft: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
+      borderTop: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
       borderRadius: `${rT}px ${rT}px ${rB}px ${rB}px`,
       padding: '5px 7px',
       overflow: 'hidden',
@@ -350,9 +350,10 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.15)',
       zIndex: vis.overlay ? 5 : undefined,
     }}>
-      <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-      <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1, whiteSpace: 'nowrap' }}>
-        {formatTimeRange(event)}{predone && <span style={{ color: '#166534' }}> · ✓ preflight</span>}
+      {predone && <div style={{ fontSize: 10, fontWeight: 600, color: '#16a34a', marginBottom: 2 }}>✓ precheck</div>}
+      <div style={{ fontWeight: 600, fontSize: 12, overflowWrap: 'break-word' }}>{name}</div>
+      <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1 }}>
+        {formatTimeRange(event)}
         {airport && <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, background: 'rgba(255,255,255,0.18)', borderRadius: 3, padding: '1px 4px' }}>{airport}</span>}
       </div>
     </div>
