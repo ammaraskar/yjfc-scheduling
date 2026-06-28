@@ -188,7 +188,7 @@ function HorizEvent({ event }: { event: ScheduleEvent }) {
       <span style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {name}
       </span>
-      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
         {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#166534' }}> · ✓ precheck</span>}
       </span>
     </div>
@@ -221,7 +221,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
             <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <Link href={`/aircraft/${ac.tail}`}>
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 14, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
+                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
                     onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
                     onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
                   >{ac.tail}</span>
@@ -243,7 +243,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
           {/* Hour header */}
           <div style={{ height: 40, display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
             {HOURS.map((h, i) => (
-              <div key={h} style={{ flex: 1, borderLeft: i === 0 ? 'none' : '1px solid var(--border)', padding: '13px 0 0 5px', fontSize: 10.5, color: 'var(--muted-foreground)', fontFamily: "'IBM Plex Mono', monospace" }}>
+              <div key={h} style={{ flex: 1, borderLeft: i === 0 ? 'none' : '1px solid var(--border)', padding: '13px 0 0 5px', fontSize: 10.5, color: 'var(--muted-foreground)' }}>
                 {hourLabel(h)}
               </div>
             ))}
@@ -296,7 +296,7 @@ function VertEvent({ event }: { event: ScheduleEvent }) {
       boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.15)',
     }}>
       <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: vis.subText, marginTop: 1, whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1, whiteSpace: 'nowrap' }}>
         {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}{predone && <span style={{ color: '#166534' }}> · ✓ preflight</span>}
       </div>
     </div>
@@ -324,7 +324,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record
           {aircraft.map((ac, i) => (
             <div key={ac.tail} style={{ flex: 1, height: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <Link href={`/aircraft/${ac.tail}`}>
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
+                <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
                   onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
                   onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
                 >{ac.tail}</span>
@@ -338,7 +338,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record
           {/* Hour gutter */}
           <div style={{ width: 54, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
             {HOURS.map(h => (
-              <div key={h} style={{ height: ROW_H, fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: 'var(--muted-foreground)', padding: '3px 0 0 7px', borderTop: '1px solid var(--border)' }}>
+              <div key={h} style={{ height: ROW_H, fontSize: 10, color: 'var(--muted-foreground)', padding: '3px 0 0 7px', borderTop: '1px solid var(--border)' }}>
                 {hourLabel(h)}
               </div>
             ))}
@@ -368,10 +368,10 @@ function ListEvent({ event }: { event: ScheduleEvent }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: 'var(--muted-foreground)', width: 110, flexShrink: 0, paddingTop: 1 }}>
+      <span style={{ fontSize: 11, color: 'var(--muted-foreground)', width: 110, flexShrink: 0, paddingTop: 1 }}>
         {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}
       </span>
-      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 11, background: '#003057', color: '#fff', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
+      <span style={{ fontWeight: 700, fontSize: 11, background: '#003057', color: '#fff', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
         {event.tail}
       </span>
       <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '2px 8px', flexShrink: 0, background: vis.bg, color: vis.text, border: vis.dashed ? '1px dashed #00355f' : undefined }}>
@@ -528,7 +528,7 @@ export default function SchedulePage() {
                     onChange={() => toggleTail(ac.tail)}
                     style={{ accentColor: '#003057', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
                   />
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12 }}>{ac.tail}</span>
+                  <span style={{ fontWeight: 600, fontSize: 12 }}>{ac.tail}</span>
                   <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>{ac.makeModel.split(' ')[1] ?? ''}</span>
                 </label>
               ))}
@@ -592,7 +592,7 @@ export default function SchedulePage() {
       {!loading && !error && (
         <div className="flex items-center justify-between border-t border-border bg-muted" style={{ padding: '8px 18px', fontSize: 11, color: 'var(--muted-foreground)' }}>
           <span>{visibleAircraft.length} aircraft · {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''}</span>
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Local {localTime()} · {zuluTime()}</span>
+          <span>Local {localTime()} · {zuluTime()}</span>
         </div>
       )}
     </div>
