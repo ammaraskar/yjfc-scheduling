@@ -45,6 +45,16 @@ function minuteOfDay(iso: string): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+function eventMinutesForDay(event: ScheduleEvent, selectedDate: Date): { startMin: number; endMin: number } {
+  const startDate = new Date(event.start);
+  const endDate = new Date(event.end);
+  const nextDay = addDays(selectedDate, 1);
+  return {
+    startMin: startDate < selectedDate ? 0 : minuteOfDay(event.start),
+    endMin: endDate >= nextDay ? 24 * 60 : minuteOfDay(event.end),
+  };
+}
+
 function currentMinutes(): number {
   const n = new Date();
   return n.getHours() * 60 + n.getMinutes();
@@ -137,28 +147,70 @@ function statusColor(s: LiveStatus): string {
   }
 }
 
-function liveStatus(events: ScheduleEvent[], nowMin: number): { status: LiveStatus; note: string } {
+function formatTimeRange(event: ScheduleEvent): string {
+  const startDate = new Date(event.start);
+  const endDate = new Date(event.end);
+  const sameDay = startDate.getFullYear() === endDate.getFullYear() &&
+                  startDate.getMonth() === endDate.getMonth() &&
+                  startDate.getDate() === endDate.getDate();
+  const endTime = formatTimeCompact(event.end);
+  if (sameDay) return `${formatTimeCompact(event.start)}–${endTime}`;
+  const endDateStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${formatTimeCompact(event.start)}–${endDateStr} ${endTime}`;
+}
+
+function minutesToTimeCompact(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const suffix = h < 12 ? 'a' : 'p';
+  const h12 = h % 12 || 12;
+  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
+}
+
+// Walk forward through back-to-back events to find when the aircraft is truly free.
+function chainedFreeMinute(events: ScheduleEvent[], startFreeMin: number, selectedDate: Date): number {
+  let freeMin = startFreeMin;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const ev of events) {
+      const { startMin, endMin } = eventMinutesForDay(ev, selectedDate);
+      if (startMin <= freeMin && endMin > freeMin) {
+        freeMin = endMin;
+        changed = true;
+        break;
+      }
+    }
+  }
+  return freeMin;
+}
+
+function liveStatus(events: ScheduleEvent[], nowMin: number, selectedDate: Date): { status: LiveStatus; note: string } {
   if (nowMin >= 0) {
-    const current = events.find(ev => minuteOfDay(ev.start) <= nowMin && minuteOfDay(ev.end) > nowMin);
+    const current = events.find(ev => {
+      const { startMin, endMin } = eventMinutesForDay(ev, selectedDate);
+      return startMin <= nowMin && endMin > nowMin;
+    });
     if (current) {
       if (current.classNames.includes(EventClass.Maint)) {
         return { status: 'maintenance', note: 'Maintenance' };
       }
-      return { status: 'in_use', note: `In use · free at ${formatTimeCompact(current.end)}` };
+      const { endMin } = eventMinutesForDay(current, selectedDate);
+      const freeMin = chainedFreeMinute(events, endMin, selectedDate);
+      return { status: 'in_use', note: `In use · free at ${minutesToTimeCompact(freeMin)}` };
     }
     const next = events
-      .filter(ev => minuteOfDay(ev.start) > nowMin)
-      .sort((a, b) => minuteOfDay(a.start) - minuteOfDay(b.start))[0];
-    if (next) return { status: 'available', note: `Available · ${formatTimeCompact(next.start)}` };
+      .filter(ev => eventMinutesForDay(ev, selectedDate).startMin > nowMin)
+      .sort((a, b) => eventMinutesForDay(a, selectedDate).startMin - eventMinutesForDay(b, selectedDate).startMin)[0];
+    if (next) return { status: 'available', note: `Available · till ${formatTimeCompact(next.start)}` };
   }
   return { status: 'available', note: 'Available' };
 }
 
 // ─── Horizontal view ─────────────────────────────────────────────────────────
 
-function HorizEvent({ event }: { event: ScheduleEvent }) {
-  const startMin = minuteOfDay(event.start);
-  const endMin   = minuteOfDay(event.end);
+function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate: Date }) {
+  const { startMin, endMin } = eventMinutesForDay(event, selectedDate);
   const left  = toLeftPct(startMin);
   const width = toLeftPct(endMin) - left;
   if (width < 0.3) return null;
@@ -189,7 +241,7 @@ function HorizEvent({ event }: { event: ScheduleEvent }) {
         {name}
       </span>
       <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
-        {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
+        {formatTimeRange(event)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
       </span>
     </div>
   );
@@ -205,7 +257,7 @@ function HorizNowLine({ nowMin }: { nowMin: number }) {
   );
 }
 
-function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT }) {
+function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date }) {
   return (
     <div style={{ display: 'flex', background: 'var(--card)' }}>
       {/* Aircraft sidebar */}
@@ -215,7 +267,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)' }}>{aircraft.length}</span>
         </div>
         {aircraft.map((ac, i) => {
-          const live = liveStatus(eventsByTail[ac.tail] ?? [], nowMin);
+          const live = liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate);
           const dotColor = statusColor(live.status);
           return (
             <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
@@ -253,7 +305,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
             {aircraft.map((ac, i) => (
               <div key={ac.tail} style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 {(eventsByTail[ac.tail] ?? []).map(ev => (
-                  <HorizEvent key={ev.id} event={ev} />
+                  <HorizEvent key={ev.id} event={ev} selectedDate={selectedDate} />
                 ))}
               </div>
             ))}
@@ -269,9 +321,8 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
 
 const ROW_H = 42; // px per hour
 
-function VertEvent({ event }: { event: ScheduleEvent }) {
-  const startMin = minuteOfDay(event.start);
-  const endMin   = minuteOfDay(event.end);
+function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate: Date }) {
+  const { startMin, endMin } = eventMinutesForDay(event, selectedDate);
   const topPct    = (startMin - GRID_START) / GRID_SPAN * 100;
   const heightPct = (endMin - startMin) / GRID_SPAN * 100;
   if (heightPct < 0.3) return null;
@@ -297,7 +348,7 @@ function VertEvent({ event }: { event: ScheduleEvent }) {
     }}>
       <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
       <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1, whiteSpace: 'nowrap' }}>
-        {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}{predone && <span style={{ color: '#166534' }}> · ✓ preflight</span>}
+        {formatTimeRange(event)}{predone && <span style={{ color: '#166534' }}> · ✓ preflight</span>}
       </div>
     </div>
   );
@@ -313,7 +364,7 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
   );
 }
 
-function VerticalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT }) {
+function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date }) {
   const totalH = HOURS.length * ROW_H;
   return (
     <div style={{ background: 'var(--card)', overflowX: 'auto' }}>
@@ -347,7 +398,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record
           {aircraft.map((ac, i) => (
             <div key={ac.tail} style={{ flex: 1, position: 'relative', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)` }}>
               {(eventsByTail[ac.tail] ?? []).map(ev => (
-                <VertEvent key={ev.id} event={ev} />
+                <VertEvent key={ev.id} event={ev} selectedDate={selectedDate} />
               ))}
             </div>
           ))}
@@ -581,8 +632,8 @@ export default function SchedulePage() {
         )}
         {!loading && !error && (
           <>
-            {view === 'horizontal' && <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} />}
-            {view === 'vertical'   && <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} />}
+            {view === 'horizontal' && <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />}
+            {view === 'vertical'   && <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />}
             {view === 'list'       && <ListView events={filteredEvents} />}
           </>
         )}
