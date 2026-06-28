@@ -501,10 +501,83 @@ function PortraitMiniVBar({ event, day }: { event: ScheduleEvent; day: Date }) {
   );
 }
 
-// ─── Portrait week: single cell (one aircraft × one day) ─────────────────────
+// ─── Portrait week: continuous spanning event banner (grid-level overlay) ─────
+//
+// Positioned in pixel space so it spans across row boundaries without breaks.
+// The overlay parent has pointerEvents:none; this re-enables them per banner.
 
-function PortraitDayCell({ events, day, isLastCol, today, nowMin, onClick }: {
-  events: ScheduleEvent[];
+function PortraitSpanBanner({ event, acIdx, N, startDayIdx, endDayIdx }: {
+  event: ScheduleEvent;
+  acIdx: number;
+  N: number;
+  startDayIdx: number;
+  endDayIdx: number;
+}) {
+  const evStart = new Date(event.start);
+  const evEnd   = new Date(event.end);
+
+  const startMinOfDay = evStart.getHours() * 60 + evStart.getMinutes();
+  const endMinRaw     = evEnd.getHours() * 60 + evEnd.getMinutes();
+  const endMinOfDay   = endMinRaw === 0 ? GRID_END : endMinRaw;
+
+  // +1 per row accounts for the 1px border-bottom between rows
+  const rowStride = PORTRAIT_CELL_H + 1;
+  const topPx    = startDayIdx * rowStride + Math.max(0, (Math.max(startMinOfDay, GRID_START) - GRID_START) / GRID_SPAN * PORTRAIT_CELL_H);
+  const bottomPx = endDayIdx   * rowStride + Math.min(PORTRAIT_CELL_H, (Math.min(endMinOfDay, GRID_END) - GRID_START) / GRID_SPAN * PORTRAIT_CELL_H);
+  const heightPx = Math.max(3, bottomPx - topPx - MINI_BAR_INSET_PX * 2);
+
+  const vis     = eventVisual(event.dest, event.classNames);
+  const isMaint = event.classNames.includes(EventClass.Maint) || event.classNames.includes(EventClass.Ovly);
+  const predone = event.classNames.includes(EventClass.Predone);
+  const { sub } = parseDestType(event.dest);
+  const name    = isMaint ? 'Maintenance' : (event.name.trim() || sub);
+  const detail  = isMaint
+    ? parseMaintDescription(event.info).trim()
+    : (event.tagMsg.trim() || sub);
+
+  return (
+    <Tooltip>
+      <TooltipTrigger style={{
+        position: 'absolute',
+        top: topPx + MINI_BAR_INSET_PX,
+        height: heightPx,
+        // Column position using CSS calc over flex-1 columns
+        left:  `calc(${PORTRAIT_DAY_COL_W}px + ${acIdx} * (100% - ${PORTRAIT_DAY_COL_W}px) / ${N} + 2px)`,
+        width: `calc((100% - ${PORTRAIT_DAY_COL_W}px) / ${N} - 4px)`,
+        background: vis.bg,
+        border:    vis.dashed ? '1px dashed #00355f' : undefined,
+        borderTop: predone ? '2px solid #16a34a' : undefined,
+        borderRadius: 3,
+        overflow: 'hidden',
+        padding: '2px 3px',
+        display: 'flex', flexDirection: 'column', gap: 1,
+        color: vis.text,
+        boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.2)',
+        pointerEvents: 'auto',
+        cursor: 'pointer',
+        boxSizing: 'border-box',
+      }}>
+        {isMaint && <Wrench size={9} style={{ flexShrink: 0 }} />}
+        <span style={{ fontSize: 9, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {name}
+        </span>
+        {detail && (
+          <span style={{ fontSize: 8, color: vis.subText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {detail}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent>
+        <EventTooltip event={event} />
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// ─── Portrait week: single cell (one aircraft × one day, single-day events only)
+
+function PortraitDayCell({ singleDayEvents, day, isLastCol, today, nowMin, onClick }: {
+  singleDayEvents: ScheduleEvent[];
   day: Date;
   isLastCol: boolean;
   today: boolean;
@@ -517,7 +590,6 @@ function PortraitDayCell({ events, day, isLastCol, today, nowMin, onClick }: {
       borderRight: isLastCol ? 'none' : '1px solid var(--border)',
       background: today ? 'rgba(212,160,23,0.06)' : undefined,
     }}>
-      {/* Horizontal hour gridlines */}
       {PORTRAIT_HOUR_LINES.map(hour => {
         const topPct = (hour * 60 - GRID_START) / GRID_SPAN * 100;
         return (
@@ -530,8 +602,7 @@ function PortraitDayCell({ events, day, isLastCol, today, nowMin, onClick }: {
           }} />
         );
       })}
-      {events.map(ev => <PortraitMiniVBar key={ev.id} event={ev} day={day} />)}
-      {/* NOW indicator: horizontal line */}
+      {singleDayEvents.map(ev => <PortraitMiniVBar key={ev.id} event={ev} day={day} />)}
       {today && nowMin >= GRID_START && nowMin <= GRID_END && (
         <div style={{
           position: 'absolute', left: 0, right: 0,
@@ -544,26 +615,27 @@ function PortraitDayCell({ events, day, isLastCol, today, nowMin, onClick }: {
   );
 }
 
-// ─── Portrait week: one day row ───────────────────────────────────────────────
+// ─── Portrait week: one day row (spanning events excluded — handled by overlay)
 
-function PortraitWeekRow({ day, aircraft, eventsByTail, isLast, onSelectDay, nowMin }: {
+function PortraitWeekRow({ day, dayIdx, days, aircraft, eventsByTail, isLast, onSelectDay, nowMin }: {
   day: Date;
+  dayIdx: number;
+  days: Date[];
   aircraft: Aircraft[];
   eventsByTail: Record<string, ScheduleEvent[]>;
   isLast: boolean;
   onSelectDay: (date: Date) => void;
   nowMin: number;
 }) {
-  const today       = isToday(day);
+  const today        = isToday(day);
   const firstOfMonth = day.getDate() === 1;
-  const dayName     = day.toLocaleDateString('en-US', { weekday: 'short' });
-  const dateStr     = firstOfMonth
+  const dayName      = day.toLocaleDateString('en-US', { weekday: 'short' });
+  const dateStr      = firstOfMonth
     ? day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : String(day.getDate());
 
   return (
     <div style={{ display: 'flex', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
-      {/* Day label with hour markers aligned to the cell's vertical time axis */}
       <div onClick={() => onSelectDay(day)} style={{
         width: PORTRAIT_DAY_COL_W, flexShrink: 0, borderRight: '1px solid var(--border)',
         position: 'relative', height: PORTRAIT_CELL_H,
@@ -587,11 +659,15 @@ function PortraitWeekRow({ day, aircraft, eventsByTail, isLast, onSelectDay, now
         ))}
       </div>
       {aircraft.map((ac, i) => {
-        const dayEvents = (eventsByTail[ac.tail] ?? []).filter(ev => eventDayRange(ev, [day]) !== null);
+        // Only single-day events — spanning events go in the grid-level overlay
+        const singleDayEvents = (eventsByTail[ac.tail] ?? []).filter(ev => {
+          const range = eventDayRange(ev, days);
+          return range !== null && range.startIdx === range.endIdx && range.startIdx === dayIdx;
+        });
         return (
           <PortraitDayCell
             key={ac.tail}
-            events={dayEvents}
+            singleDayEvents={singleDayEvents}
             day={day}
             isLastCol={i === aircraft.length - 1}
             today={today}
@@ -620,20 +696,51 @@ export function WeekGrid({ days, events, visibleAircraft, onSelectDay, nowMin, p
   }, {});
 
   if (portrait) {
+    const N = visibleAircraft.length;
+    const spanningEvents: Array<{
+      event: ScheduleEvent; acIdx: number; startDayIdx: number; endDayIdx: number;
+    }> = [];
+    for (let acIdx = 0; acIdx < N; acIdx++) {
+      for (const ev of eventsByTail[visibleAircraft[acIdx].tail] ?? []) {
+        const range = eventDayRange(ev, days);
+        if (range && range.startIdx < range.endIdx) {
+          spanningEvents.push({ event: ev, acIdx, startDayIdx: range.startIdx, endDayIdx: range.endIdx });
+        }
+      }
+    }
+
     return (
       <div>
         <PortraitWeekHeader aircraft={visibleAircraft} />
-        {days.map((day, i) => (
-          <PortraitWeekRow
-            key={i}
-            day={day}
-            aircraft={visibleAircraft}
-            eventsByTail={eventsByTail}
-            isLast={i === days.length - 1}
-            onSelectDay={onSelectDay}
-            nowMin={nowMin ?? -1}
-          />
-        ))}
+        <div style={{ position: 'relative' }}>
+          {days.map((day, i) => (
+            <PortraitWeekRow
+              key={i}
+              day={day}
+              dayIdx={i}
+              days={days}
+              aircraft={visibleAircraft}
+              eventsByTail={eventsByTail}
+              isLast={i === days.length - 1}
+              onSelectDay={onSelectDay}
+              nowMin={nowMin ?? -1}
+            />
+          ))}
+          {spanningEvents.length > 0 && (
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
+              {spanningEvents.map(({ event, acIdx, startDayIdx, endDayIdx }) => (
+                <PortraitSpanBanner
+                  key={event.id}
+                  event={event}
+                  acIdx={acIdx}
+                  N={N}
+                  startDayIdx={startDayIdx}
+                  endDayIdx={endDayIdx}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
