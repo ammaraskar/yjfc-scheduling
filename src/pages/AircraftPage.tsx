@@ -99,7 +99,7 @@ export default function AircraftPage() {
               Available
             </span>
             <span className="flex items-center gap-[5px] ml-2">
-              <span className="w-[8px] h-[8px] rounded-full" style={{ background: '#EAAA00' }} />
+              <span className="w-[8px] h-[8px] rounded-full" style={{ background: 'var(--club-gold)' }} />
               In use
             </span>
             <span className="flex items-center gap-[5px] ml-2">

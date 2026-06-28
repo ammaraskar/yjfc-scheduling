@@ -39,7 +39,7 @@ export default function LoginPage() {
           >
             <span
               className="font-mono font-bold text-lg tracking-tight"
-              style={{ color: '#EAAA00' }}
+              style={{ color: 'var(--club-gold)' }}
             >
               YJFC
             </span>
@@ -72,7 +72,7 @@ export default function LoginPage() {
                   placeholder="your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="focus-visible:ring-[#EAAA00]"
+                  className="focus-visible:ring-club-gold"
                 />
               </div>
 
@@ -88,7 +88,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="focus-visible:ring-[#EAAA00]"
+                  className="focus-visible:ring-club-gold"
                 />
               </div>
 
@@ -101,7 +101,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full font-bold mt-2 cursor-pointer"
                 style={{
-                  background: '#EAAA00',
+                  background: 'var(--club-gold)',
                   color: '#002744',
                   boxShadow: '0 1px 2px rgba(234,170,0,.4)',
                 }}

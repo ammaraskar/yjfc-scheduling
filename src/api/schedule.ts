@@ -1,11 +1,13 @@
 import { apiClient } from './client';
 import type { ApiFetch } from './client';
 
-export enum EventClass {
-  Maint   = 'maint',
-  Predone = 'predone',
-  Other   = 'other',
-}
+export const EventClass = {
+  Maint:   'maint',
+  Predone: 'predone',
+  Other:   'other',
+} as const;
+
+export type EventClass = typeof EventClass[keyof typeof EventClass];
 
 export interface ScheduleEvent {
   id: number;

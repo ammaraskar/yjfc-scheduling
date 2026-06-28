@@ -505,7 +505,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
             <div className="order-1 md:order-2 shrink-0 w-full md:w-[300px] p-[11px] md:p-[20px] bg-muted">
               <button
                 className="block w-full text-center text-[13.5px] md:text-[14px] font-bold rounded-[9px] py-[10px] md:py-[12px] mb-[7px] md:mb-[8px] cursor-pointer"
-                style={{ color: '#003057', background: '#EAAA00', boxShadow: '0 1px 2px rgba(234,170,0,0.4)' }}
+                style={{ color: '#003057', background: 'var(--club-gold)', boxShadow: '0 1px 2px rgba(234,170,0,0.4)' }}
               >
                 + Reserve {aircraft.tail}
               </button>

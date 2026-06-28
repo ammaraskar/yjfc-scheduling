@@ -4,6 +4,9 @@ import TopBar from '@/components/TopBar'
 import { getSchedule, EventClass, type ScheduleEvent } from '@/api'
 import { useAuth } from '@/auth'
 import { AIRCRAFT, statusColor } from '@/data/aircraft'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 
@@ -100,7 +103,7 @@ function eventVisual(dest: string, classNames: EventClass[]): EventVisual {
   const { type } = parseDestType(dest);
   switch (type) {
     case 'Training':
-      return { bg: '#EAAA00', text: '#2a2200', subText: 'rgba(42,34,0,0.7)' };
+      return { bg: 'var(--club-gold)', text: '#2a2200', subText: 'rgba(42,34,0,0.7)' };
     case 'Rental':
     case 'Charter':
       return { bg: '#00355f', text: '#ffffff', subText: 'rgba(255,255,255,0.82)' };
@@ -167,25 +170,25 @@ function HorizNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const left = toLeftPct(nowMin);
   return (
-    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${left}%`, width: 2, background: '#EAAA00', pointerEvents: 'none', zIndex: 10 }}>
-      <div style={{ position: 'absolute', top: -4, left: -4, width: 10, height: 10, borderRadius: '50%', background: '#EAAA00', border: '2px solid var(--card)', boxShadow: '0 0 0 1px #EAAA00' }} />
+    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${left}%`, width: 2, background: 'var(--club-gold)', pointerEvents: 'none', zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: -4, left: -4, width: 10, height: 10, borderRadius: '50%', background: 'var(--club-gold)', border: '2px solid var(--card)', boxShadow: '0 0 0 1px var(--club-gold)' }} />
     </div>
   );
 }
 
-function HorizontalView({ eventsByTail, nowMin }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number }) {
+function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT }) {
   return (
     <div style={{ display: 'flex', background: 'var(--card)' }}>
       {/* Aircraft sidebar */}
       <div style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)' }}>
         <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.07em', color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Aircraft</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)' }}>{AIRCRAFT.length}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)' }}>{aircraft.length}</span>
         </div>
-        {AIRCRAFT.map((ac, i) => {
+        {aircraft.map((ac, i) => {
           const dotColor = statusColor(ac.status);
           return (
-            <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < AIRCRAFT.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <Link href={`/aircraft/${ac.tail}`}>
                   <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 14, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
@@ -217,8 +220,8 @@ function HorizontalView({ eventsByTail, nowMin }: { eventsByTail: Record<string,
           </div>
           {/* Event rows */}
           <div style={{ position: 'relative', background: 'repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px calc(100%/16))' }}>
-            {AIRCRAFT.map((ac, i) => (
-              <div key={ac.tail} style={{ position: 'relative', height: 64, borderBottom: i < AIRCRAFT.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            {aircraft.map((ac, i) => (
+              <div key={ac.tail} style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 {(eventsByTail[ac.tail] ?? []).map(ev => (
                   <HorizEvent key={ev.id} event={ev} />
                 ))}
@@ -274,13 +277,13 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const topPct = (nowMin - GRID_START) / GRID_SPAN * 100;
   return (
-    <div style={{ position: 'absolute', left: 54, right: 0, top: `${topPct}%`, height: 2, background: '#EAAA00', pointerEvents: 'none', zIndex: 10 }}>
-      <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: '#EAAA00', border: '2px solid var(--card)' }} />
+    <div style={{ position: 'absolute', left: 54, right: 0, top: `${topPct}%`, height: 2, background: 'var(--club-gold)', pointerEvents: 'none', zIndex: 10 }}>
+      <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: 'var(--club-gold)', border: '2px solid var(--card)' }} />
     </div>
   );
 }
 
-function VerticalView({ eventsByTail, nowMin }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number }) {
+function VerticalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT }) {
   const totalH = HOURS.length * ROW_H;
   return (
     <div style={{ background: 'var(--card)', overflowX: 'auto' }}>
@@ -288,8 +291,8 @@ function VerticalView({ eventsByTail, nowMin }: { eventsByTail: Record<string, S
         {/* Column headers */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
           <div style={{ width: 54, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
-          {AIRCRAFT.map((ac, i) => (
-            <div key={ac.tail} style={{ flex: 1, height: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: i < AIRCRAFT.length - 1 ? '1px solid var(--border)' : 'none' }}>
+          {aircraft.map((ac, i) => (
+            <div key={ac.tail} style={{ flex: 1, height: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <Link href={`/aircraft/${ac.tail}`}>
                 <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
                   onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
@@ -311,8 +314,8 @@ function VerticalView({ eventsByTail, nowMin }: { eventsByTail: Record<string, S
             ))}
           </div>
           {/* Aircraft columns */}
-          {AIRCRAFT.map((ac, i) => (
-            <div key={ac.tail} style={{ flex: 1, position: 'relative', borderRight: i < AIRCRAFT.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)` }}>
+          {aircraft.map((ac, i) => (
+            <div key={ac.tail} style={{ flex: 1, position: 'relative', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)` }}>
               {(eventsByTail[ac.tail] ?? []).map(ev => (
                 <VertEvent key={ev.id} event={ev} />
               ))}
@@ -380,6 +383,9 @@ const VIEW_LABELS: Record<ViewMode, string> = {
 export default function SchedulePage() {
   const { session } = useAuth();
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedTails, setSelectedTails] = useState<Set<string>>(() => new Set(AIRCRAFT.map(a => a.tail)));
+  const [filterOpen, setFilterOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('horizontal');
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -401,6 +407,18 @@ export default function SchedulePage() {
   }, {});
 
   const today = isToday(selectedDate);
+  const allSelected = selectedTails.size === AIRCRAFT.length;
+  const visibleAircraft = AIRCRAFT.filter(a => selectedTails.has(a.tail));
+
+  function toggleTail(tail: string) {
+    setSelectedTails(prev => {
+      const next = new Set(prev);
+      if (next.has(tail)) { next.delete(tail); } else { next.add(tail); }
+      return next;
+    });
+  }
+
+  const filteredEvents = events.filter(ev => !ev.tail || selectedTails.has(ev.tail));
 
   return (
     <div className="min-h-screen flex flex-col bg-muted">
@@ -415,9 +433,23 @@ export default function SchedulePage() {
               onClick={() => setSelectedDate(d => addDays(d, -1))}
               style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
             >‹</button>
-            <span style={{ fontWeight: 700, fontSize: 14, minWidth: 170, textAlign: 'center', userSelect: 'none', color: 'var(--foreground)' }}>
-              {formatDayLabel(selectedDate)}
-            </span>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger
+                style={{ fontWeight: 700, fontSize: 14, minWidth: 170, textAlign: 'center', userSelect: 'none', color: 'var(--foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 5 }}
+              >
+                {formatDayLabel(selectedDate)}
+              </PopoverTrigger>
+              <PopoverContent align="start" style={{ width: 'auto', padding: 0 }}>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={d => { if (d) { setSelectedDate(startOfDay(d)); setCalendarOpen(false); } }}
+                  classNames={{
+                    today: 'rounded-[var(--cell-radius)] ring-2 ring-club-gold ring-offset-1 font-bold data-[selected=true]:rounded-none',
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             <button
               onClick={() => setSelectedDate(d => addDays(d, 1))}
               style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
@@ -434,33 +466,73 @@ export default function SchedulePage() {
           )}
         </div>
 
-        {/* View toggle */}
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', fontSize: 13, fontWeight: 600 }}>
-          {(Object.keys(VIEW_LABELS) as ViewMode[]).map((v, i) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              style={{
-                padding: '6px 13px',
-                background: view === v ? '#003057' : 'var(--card)',
-                color: view === v ? '#fff' : 'var(--muted-foreground)',
-                borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
-                cursor: 'pointer',
-                border: 'none',
-                fontWeight: 600,
-                fontSize: 13,
-              }}
-            >
-              {VIEW_LABELS[v]}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Aircraft filter */}
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px',
+              background: allSelected ? 'var(--card)' : '#003057',
+              color: allSelected ? 'var(--muted-foreground)' : '#fff',
+              cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            }}>
+              <SlidersHorizontal size={14} />
+              {allSelected ? 'All aircraft' : `${selectedTails.size} aircraft`}
+              <ChevronDown size={13} />
+            </PopoverTrigger>
+            <PopoverContent align="end" style={{ width: 200, padding: '8px 0' }}>
+              <div style={{ padding: '4px 12px 8px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>Aircraft</span>
+                <button
+                  onClick={() => setSelectedTails(allSelected ? new Set() : new Set(AIRCRAFT.map(a => a.tail)))}
+                  style={{ fontSize: 11, fontWeight: 600, color: '#003057', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {allSelected ? 'None' : 'All'}
+                </button>
+              </div>
+              {AIRCRAFT.map(ac => (
+                <label key={ac.tail} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 12px', cursor: 'pointer', fontSize: 13 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedTails.has(ac.tail)}
+                    onChange={() => toggleTail(ac.tail)}
+                    style={{ accentColor: '#003057', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12 }}>{ac.tail}</span>
+                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>{ac.makeModel.split(' ')[1] ?? ''}</span>
+                </label>
+              ))}
+            </PopoverContent>
+          </Popover>
+
+          {/* View toggle */}
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', fontSize: 13, fontWeight: 600 }}>
+            {(Object.keys(VIEW_LABELS) as ViewMode[]).map((v, i) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                style={{
+                  padding: '6px 13px',
+                  background: view === v ? '#003057' : 'var(--card)',
+                  color: view === v ? '#fff' : 'var(--muted-foreground)',
+                  borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
+                  cursor: 'pointer',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
+              >
+                {VIEW_LABELS[v]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Legend strip */}
       <div className="flex items-center justify-end border-b border-border bg-muted" style={{ padding: '7px 18px', fontSize: 12, gap: 14, flexWrap: 'wrap' as const }}>
         <LegendItem color="#00355f" label="Rental" />
-        <LegendItem color="#EAAA00" label="Training" />
+        <LegendItem color="var(--club-gold)" label="Training" />
         <LegendItem color={undefined} label="Standby" dashed />
         <LegendItem color={undefined} label="Maintenance" stripe />
       </div>
@@ -479,9 +551,9 @@ export default function SchedulePage() {
         )}
         {!loading && !error && (
           <>
-            {view === 'horizontal' && <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} />}
-            {view === 'vertical'   && <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} />}
-            {view === 'list'       && <ListView events={events} />}
+            {view === 'horizontal' && <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} />}
+            {view === 'vertical'   && <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} />}
+            {view === 'list'       && <ListView events={filteredEvents} />}
           </>
         )}
       </div>
@@ -489,7 +561,7 @@ export default function SchedulePage() {
       {/* Footer */}
       {!loading && !error && (
         <div className="flex items-center justify-between border-t border-border bg-muted" style={{ padding: '8px 18px', fontSize: 11, color: 'var(--muted-foreground)' }}>
-          <span>{AIRCRAFT.length} aircraft · {events.length} reservation{events.length !== 1 ? 's' : ''}</span>
+          <span>{visibleAircraft.length} aircraft · {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''}</span>
           <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Local {localTime()} · {zuluTime()}</span>
         </div>
       )}

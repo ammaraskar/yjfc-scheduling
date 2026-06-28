@@ -187,7 +187,7 @@ export function getAircraft(tail: string): Aircraft | undefined {
 export function statusColor(status: AircraftStatus): string {
   switch (status) {
     case 'available': return '#1f9d57';
-    case 'in_use': return '#EAAA00';
+    case 'in_use': return 'var(--club-gold)';
     case 'maintenance': return '#8a3d2f';
   }
 }

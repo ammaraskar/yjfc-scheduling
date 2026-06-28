@@ -35,7 +35,7 @@ export default function TopBar() {
           <div className="flex items-center gap-[9px] min-w-0 md:flex-1">
             <div
               className="w-[28px] h-[28px] md:w-[30px] md:h-[30px] rounded-full flex items-center justify-center font-mono font-semibold text-[11px] tracking-tight shrink-0"
-              style={{ background: '#EAAA00', color: '#003057' }}
+              style={{ background: 'var(--club-gold)', color: '#003057' }}
             >
               YJ
             </div>
@@ -53,7 +53,7 @@ export default function TopBar() {
                       style={{
                         color: active ? '#fff' : 'rgba(255,255,255,0.78)',
                         fontWeight: active ? 600 : 500,
-                        borderBottom: active ? '2px solid #EAAA00' : '2px solid transparent',
+                        borderBottom: active ? '2px solid var(--club-gold)' : '2px solid transparent',
                         paddingBottom: 3,
                       }}
                     >
@@ -70,7 +70,7 @@ export default function TopBar() {
               <div className="flex items-center gap-[7px] px-[8px] md:px-[10px] py-[4px] rounded-[20px]" style={{ background: 'rgba(255,255,255,0.1)' }}>
                 <div
                   className="w-[20px] h-[20px] md:w-[22px] md:h-[22px] rounded-full flex items-center justify-center font-mono font-bold text-[10px] md:text-[11px]"
-                  style={{ background: '#EAAA00', color: '#003057' }}
+                  style={{ background: 'var(--club-gold)', color: '#003057' }}
                 >
                   {initials}
                 </div>
