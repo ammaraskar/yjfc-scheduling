@@ -598,6 +598,7 @@ export default function SchedulePage() {
                 visibleAircraft={visibleAircraft}
                 onSelectDay={day => { setSelectedDate(day); setViewMode('day'); }}
                 nowMin={nowMin}
+                portrait={portrait}
               />
             )
             : portrait

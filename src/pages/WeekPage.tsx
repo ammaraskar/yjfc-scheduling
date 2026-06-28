@@ -23,6 +23,12 @@ const DAY_GRID_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 const DAY_TICK_HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
 const DAY_LABEL_HOURS = [8, 14, 20]; // 8a, 2p, 8p
 
+// Portrait layout: days are rows, aircraft are columns; time flows vertically
+const PORTRAIT_DAY_COL_W = 52;
+const PORTRAIT_CELL_H    = 126; // 18 hours × 7px/hr
+// Hour lines inside portrait cells
+const PORTRAIT_HOUR_LINES = [6, 9, 12, 15, 18, 21, 24];
+
 // NOW line styling (matches SchedulePage day view)
 const NOW_LINE_COLOR = 'var(--club-gold)';
 const NOW_LINE_OPACITY = 0.5;
@@ -443,19 +449,194 @@ function WeekHeader({ days }: { days: Date[] }) {
   );
 }
 
+// ─── Portrait week: aircraft header ──────────────────────────────────────────
+
+function PortraitWeekHeader({ aircraft }: { aircraft: Aircraft[] }) {
+  return (
+    <div style={{ display: 'flex', background: 'var(--muted)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ width: PORTRAIT_DAY_COL_W, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
+      {aircraft.map((ac, i) => (
+        <div key={ac.tail} style={{
+          flex: 1, textAlign: 'center', padding: '6px 2px',
+          borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none',
+        }}>
+          <Link href={`/aircraft/${ac.tail}`}>
+            <span style={{ fontWeight: 600, fontSize: 11, color: 'var(--foreground)', cursor: 'pointer' }}>{ac.tail}</span>
+          </Link>
+          <div style={{ fontSize: 9, color: 'var(--muted-foreground)' }}>{ac.makeModel.split(' ')[1] ?? ''}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Portrait week: vertical mini event bar (time flows top→bottom) ──────────
+
+function PortraitMiniVBar({ event, day }: { event: ScheduleEvent; day: Date }) {
+  const { startMin, endMin } = eventMinutesForDay(event, day);
+  const visStart  = Math.max(startMin, GRID_START);
+  const visEnd    = Math.min(endMin, GRID_END);
+  const topPct    = (visStart - GRID_START) / GRID_SPAN * 100;
+  const heightPct = (visEnd - visStart) / GRID_SPAN * 100;
+  if (heightPct < 0.3) return null;
+
+  const vis = eventVisual(event.dest, event.classNames);
+  return (
+    <Tooltip>
+      <TooltipTrigger style={{
+        position: 'absolute',
+        left: 2, right: 2,
+        top: `calc(${topPct}% + ${MINI_BAR_INSET_PX}px)`,
+        height: `max(3px, calc(${heightPct}% - ${MINI_BAR_INSET_PX * 2}px))`,
+        background: vis.bg,
+        border: vis.dashed ? '1px dashed #00355f' : undefined,
+        borderRadius: 2,
+        opacity: 0.9,
+        cursor: 'pointer',
+      }} />
+      <TooltipContent>
+        <EventTooltip event={event} />
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// ─── Portrait week: single cell (one aircraft × one day) ─────────────────────
+
+function PortraitDayCell({ events, day, isLastCol, today, nowMin, onClick }: {
+  events: ScheduleEvent[];
+  day: Date;
+  isLastCol: boolean;
+  today: boolean;
+  nowMin: number;
+  onClick: () => void;
+}) {
+  return (
+    <div onClick={onClick} style={{
+      flex: 1, height: PORTRAIT_CELL_H, position: 'relative', cursor: 'pointer',
+      borderRight: isLastCol ? 'none' : '1px solid var(--border)',
+      background: today ? 'rgba(212,160,23,0.06)' : undefined,
+    }}>
+      {/* Horizontal hour gridlines */}
+      {PORTRAIT_HOUR_LINES.map(hour => {
+        const topPct = (hour * 60 - GRID_START) / GRID_SPAN * 100;
+        return (
+          <div key={hour} style={{
+            position: 'absolute', left: 0, right: 0,
+            top: `${topPct}%`, height: 1,
+            background: 'var(--border)',
+            opacity: hour % 6 === 0 ? 0.8 : 0.35,
+            pointerEvents: 'none',
+          }} />
+        );
+      })}
+      {events.map(ev => <PortraitMiniVBar key={ev.id} event={ev} day={day} />)}
+      {/* NOW indicator: horizontal line */}
+      {today && nowMin >= GRID_START && nowMin <= GRID_END && (
+        <div style={{
+          position: 'absolute', left: 0, right: 0,
+          top: `${(nowMin - GRID_START) / GRID_SPAN * 100}%`,
+          height: NOW_LINE_WIDTH, background: NOW_LINE_COLOR, opacity: NOW_LINE_OPACITY,
+          pointerEvents: 'none', zIndex: 5,
+        }} />
+      )}
+    </div>
+  );
+}
+
+// ─── Portrait week: one day row ───────────────────────────────────────────────
+
+function PortraitWeekRow({ day, aircraft, eventsByTail, isLast, onSelectDay, nowMin }: {
+  day: Date;
+  aircraft: Aircraft[];
+  eventsByTail: Record<string, ScheduleEvent[]>;
+  isLast: boolean;
+  onSelectDay: (date: Date) => void;
+  nowMin: number;
+}) {
+  const today       = isToday(day);
+  const firstOfMonth = day.getDate() === 1;
+  const dayName     = day.toLocaleDateString('en-US', { weekday: 'short' });
+  const dateStr     = firstOfMonth
+    ? day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : String(day.getDate());
+
+  return (
+    <div style={{ display: 'flex', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
+      {/* Day label with hour markers aligned to the cell's vertical time axis */}
+      <div onClick={() => onSelectDay(day)} style={{
+        width: PORTRAIT_DAY_COL_W, flexShrink: 0, borderRight: '1px solid var(--border)',
+        position: 'relative', height: PORTRAIT_CELL_H,
+        background: today ? 'rgba(212,160,23,0.10)' : undefined,
+        cursor: 'pointer',
+      }}>
+        <div style={{ textAlign: 'center', padding: '4px 2px 0' }}>
+          <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{dayName}</div>
+          <div style={{ fontSize: 14, fontWeight: today ? 700 : 500, color: today ? 'var(--club-gold)' : 'var(--foreground)' }}>{dateStr}</div>
+        </div>
+        {[6, 12, 18].map(hour => (
+          <span key={hour} style={{
+            position: 'absolute', right: 4,
+            top: `${(hour * 60 - GRID_START) / GRID_SPAN * 100}%`,
+            transform: 'translateY(-50%)',
+            fontSize: 8.5, color: 'var(--muted-foreground)', fontWeight: 500, lineHeight: 1,
+            pointerEvents: 'none',
+          }}>
+            {hourTickLabel(hour)}
+          </span>
+        ))}
+      </div>
+      {aircraft.map((ac, i) => {
+        const dayEvents = (eventsByTail[ac.tail] ?? []).filter(ev => eventDayRange(ev, [day]) !== null);
+        return (
+          <PortraitDayCell
+            key={ac.tail}
+            events={dayEvents}
+            day={day}
+            isLastCol={i === aircraft.length - 1}
+            today={today}
+            nowMin={nowMin}
+            onClick={() => onSelectDay(day)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── WeekGrid ─────────────────────────────────────────────────────────────────
 
-export function WeekGrid({ days, events, visibleAircraft, onSelectDay, nowMin }: {
+export function WeekGrid({ days, events, visibleAircraft, onSelectDay, nowMin, portrait }: {
   days: Date[];
   events: ScheduleEvent[];
   visibleAircraft: Aircraft[];
   onSelectDay: (date: Date) => void;
   nowMin?: number;
+  portrait?: boolean;
 }) {
   const eventsByTail = events.reduce<Record<string, ScheduleEvent[]>>((acc, ev) => {
     if (ev.tail) (acc[ev.tail] ??= []).push(ev);
     return acc;
   }, {});
+
+  if (portrait) {
+    return (
+      <div>
+        <PortraitWeekHeader aircraft={visibleAircraft} />
+        {days.map((day, i) => (
+          <PortraitWeekRow
+            key={i}
+            day={day}
+            aircraft={visibleAircraft}
+            eventsByTail={eventsByTail}
+            isLast={i === days.length - 1}
+            onSelectDay={onSelectDay}
+            nowMin={nowMin ?? -1}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
