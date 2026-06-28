@@ -115,13 +115,13 @@ function DayCell({ day, events, isLast, onClick }: {
           key={hour}
           style={{
             position: 'absolute',
-            top: 8,
-            bottom: 8,
+            top: 2,
+            bottom: 2,
             left: `${toTimePct(hour * 60)}%`,
             width: 1,
             transform: 'translateX(-0.5px)',
             background: 'var(--border)',
-            opacity: hour % 3 === 0 ? 0.5 : 0.25,
+            opacity: hour % 3 === 0 ? 0.8 : 0.5,
             pointerEvents: 'none',
           }}
         />
@@ -160,13 +160,13 @@ function WeekTimeRow() {
               key={hour}
               style={{
                 position: 'absolute',
-                top: 2,
-                bottom: 12,
+                top: 0,
+                bottom: 11,
                 left: `${toTimePct(hour * 60)}%`,
                 width: 1,
                 transform: 'translateX(-0.5px)',
                 background: 'var(--border)',
-                opacity: hour % 3 === 0 ? 0.7 : 0.35,
+                opacity: hour % 3 === 0 ? 0.9 : 0.55,
               }}
             />
           ))}
@@ -376,7 +376,7 @@ export function WeekGrid({ days, events, visibleAircraft, onSelectDay }: {
   }, {});
 
   return (
-    <div style={{ minWidth: WEEK_AC_COL_W + 7 * 70 }}>
+    <div>
       <WeekHeader days={days} />
       {visibleAircraft.map((ac, i) => (
         <WeekRow

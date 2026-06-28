@@ -469,11 +469,11 @@ export default function SchedulePage() {
   const filteredEvents = events.filter(ev => !ev.tail || selectedTails.has(ev.tail));
 
   return (
-    <div className="min-h-screen flex flex-col bg-muted">
+    <div className="h-screen flex flex-col bg-muted overflow-hidden">
       <TopBar />
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between border-b border-border bg-card" style={{ padding: '10px 16px', gap: 12, flexWrap: 'wrap' as const }}>
+      <div className="flex items-center justify-between border-b border-border bg-card" style={{ padding: '10px 16px', gap: 12, flexWrap: 'wrap' as const, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
           {/* Date / week navigator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', borderRadius: 8, padding: '4px 5px' }}>
@@ -578,7 +578,7 @@ export default function SchedulePage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, background: 'var(--card)', borderRadius: 0 }}>
+      <div style={{ flex: 1, background: 'var(--card)', borderRadius: 0, overflowY: 'auto', overflowX: 'hidden' }}>
         {loading && (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted-foreground)', fontSize: 14 }}>
             Loading schedule…
@@ -592,14 +592,12 @@ export default function SchedulePage() {
         {!loading && !error && (
           viewMode === 'week'
             ? (
-              <div style={{ overflowX: 'auto' }}>
-                <WeekGrid
-                  days={days}
-                  events={filteredEvents}
-                  visibleAircraft={visibleAircraft}
-                  onSelectDay={day => { setSelectedDate(day); setViewMode('day'); }}
-                />
-              </div>
+              <WeekGrid
+                days={days}
+                events={filteredEvents}
+                visibleAircraft={visibleAircraft}
+                onSelectDay={day => { setSelectedDate(day); setViewMode('day'); }}
+              />
             )
             : portrait
               ? <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
