@@ -3,6 +3,8 @@ import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
 import { getAircraft } from '@/data/aircraft'
 import { getResStatus, getSchedule, EventClass, type ResStatus, type ScheduleEvent } from '@/api'
+import { liveStatus } from '@/lib/liveStatus'
+import { AvailabilityBadge } from '@/components/AvailabilityBadge'
 import { useAuth } from '@/auth'
 
 interface SquawkEntry {
@@ -53,88 +55,6 @@ function resSubLabel(event: ScheduleEvent): string {
   const day = formatResDay(event);
   return [day, type, sub].filter(Boolean).join(' · ');
 }
-
-// ─── Live status ─────────────────────────────────────────────────────────────
-
-type LiveStatus = 'available' | 'in_use' | 'maintenance';
-
-function minutesToTimeCompact(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  const suffix = h < 12 ? 'a' : 'p';
-  const h12 = h % 12 || 12;
-  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
-}
-
-function minuteOfDay(iso: string): number {
-  const d = new Date(iso);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function eventMinutesForDay(event: ScheduleEvent, date: Date): { startMin: number; endMin: number } {
-  const startDate = new Date(event.start);
-  const endDate = new Date(event.end);
-  const nextDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-  return {
-    startMin: startDate < date ? 0 : minuteOfDay(event.start),
-    endMin: endDate >= nextDay ? 24 * 60 : minuteOfDay(event.end),
-  };
-}
-
-function chainedFreeMinute(events: ScheduleEvent[], startFreeMin: number, date: Date): number {
-  let freeMin = startFreeMin;
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const ev of events) {
-      const { startMin, endMin } = eventMinutesForDay(ev, date);
-      if (startMin <= freeMin && endMin > freeMin) {
-        freeMin = endMin;
-        changed = true;
-        break;
-      }
-    }
-  }
-  return freeMin;
-}
-
-function computeLiveStatus(events: ScheduleEvent[], nowMin: number, date: Date): { status: LiveStatus; note: string } {
-  const current = events.find(ev => {
-    const { startMin, endMin } = eventMinutesForDay(ev, date);
-    return startMin <= nowMin && endMin > nowMin;
-  });
-  if (current) {
-    if (current.classNames.includes(EventClass.Maint) || current.classNames.includes(EventClass.Ovly)) {
-      return { status: 'maintenance', note: 'Maintenance' };
-    }
-    const { endMin } = eventMinutesForDay(current, date);
-    const freeMin = chainedFreeMinute(events, endMin, date);
-    return { status: 'in_use', note: `In use · free at ${minutesToTimeCompact(freeMin)}` };
-  }
-  const next = events
-    .filter(ev => eventMinutesForDay(ev, date).startMin > nowMin)
-    .sort((a, b) => eventMinutesForDay(a, date).startMin - eventMinutesForDay(b, date).startMin)[0];
-  if (next) return { status: 'available', note: `Available · till ${minutesToTimeCompact(eventMinutesForDay(next, date).startMin)}` };
-  return { status: 'available', note: 'Available' };
-}
-
-function statusBadgeStyle(s: LiveStatus): React.CSSProperties {
-  switch (s) {
-    case 'available':   return { background: '#e8f7ee', color: '#1f7a45', border: '1px solid #b4ddc5' };
-    case 'in_use':      return { background: '#fff8e6', color: '#9a6b00', border: '1px solid #f0e2a0' };
-    case 'maintenance': return { background: '#fdf0ee', color: '#8a3d2f', border: '1px solid #e8c4bc' };
-  }
-}
-
-function statusDotColor(s: LiveStatus): string {
-  switch (s) {
-    case 'available':   return '#1f9d57';
-    case 'in_use':      return 'var(--club-gold)';
-    case 'maintenance': return '#8a3d2f';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 function parseSquawkEntries(detail: string): SquawkEntry[] {
   // Each entry starts with MM/DD/YY on a new line (first entry has no leading newline)
@@ -285,7 +205,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
   const todayEnd = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate() + 1);
   const todayEvents = upcomingEvents.filter(e => new Date(e.start) < todayEnd && new Date(e.end) > todayStart);
   const nowMin = today.getHours() * 60 + today.getMinutes();
-  const live = !loadingSchedule && !isSim ? computeLiveStatus(todayEvents, nowMin, todayStart) : null;
+  const live = !loadingSchedule && !isSim ? liveStatus(todayEvents, nowMin, todayStart) : null;
 
   // Derive live values with static fallbacks
   const ttaf = liveData?.ttaf ?? aircraft.hobbs;
@@ -365,15 +285,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                     >
                       {aircraft.tail}
                     </span>
-                    {live && (
-                      <span
-                        className="inline-flex items-center gap-[5px] rounded-full px-[10px] py-[3px] text-[12px] font-medium"
-                        style={statusBadgeStyle(live.status)}
-                      >
-                        <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: statusDotColor(live.status) }} />
-                        {live.note}
-                      </span>
-                    )}
+                    {live && <AvailabilityBadge status={live.status} note={live.note} />}
                   </div>
                   <div className="text-[13px] md:text-[14px] mt-[2px] md:mt-[4px] text-muted-foreground">
                     {aircraft.makeModel} · {aircraft.year}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
 import { getSchedule, EventClass, type ScheduleEvent } from '@/api'
+import { eventMinutesForDay, liveStatus, statusDotColor } from '@/lib/liveStatus'
 import { useAuth } from '@/auth'
 import { AIRCRAFT } from '@/data/aircraft'
 import { Calendar } from '@/components/ui/calendar'
@@ -38,21 +39,6 @@ function formatTimeCompact(iso: string): string {
   const suffix = h < 12 ? 'a' : 'p';
   const h12 = h % 12 || 12;
   return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
-}
-
-function minuteOfDay(iso: string): number {
-  const d = new Date(iso);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function eventMinutesForDay(event: ScheduleEvent, selectedDate: Date): { startMin: number; endMin: number } {
-  const startDate = new Date(event.start);
-  const endDate = new Date(event.end);
-  const nextDay = addDays(selectedDate, 1);
-  return {
-    startMin: startDate < selectedDate ? 0 : minuteOfDay(event.start),
-    endMin: endDate >= nextDay ? 24 * 60 : minuteOfDay(event.end),
-  };
 }
 
 function currentMinutes(): number {
@@ -143,17 +129,7 @@ function useNowMinutes(): number {
   return min;
 }
 
-// ─── Live status ─────────────────────────────────────────────────────────────
-
-type LiveStatus = 'available' | 'in_use' | 'maintenance';
-
-function statusColor(s: LiveStatus): string {
-  switch (s) {
-    case 'available':   return '#1f9d57';
-    case 'in_use':      return 'var(--club-gold)';
-    case 'maintenance': return '#8a3d2f';
-  }
-}
+// ─── Event block styles ──────────────────────────────────────────────────────
 
 function formatTimeRange(event: ScheduleEvent): string {
   const startDate = new Date(event.start);
@@ -165,54 +141,6 @@ function formatTimeRange(event: ScheduleEvent): string {
   if (sameDay) return `${formatTimeCompact(event.start)}–${endTime}`;
   const endDateStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return `${formatTimeCompact(event.start)}–${endDateStr} ${endTime}`;
-}
-
-function minutesToTimeCompact(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  const suffix = h < 12 ? 'a' : 'p';
-  const h12 = h % 12 || 12;
-  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
-}
-
-// Walk forward through back-to-back events to find when the aircraft is truly free.
-function chainedFreeMinute(events: ScheduleEvent[], startFreeMin: number, selectedDate: Date): number {
-  let freeMin = startFreeMin;
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const ev of events) {
-      const { startMin, endMin } = eventMinutesForDay(ev, selectedDate);
-      if (startMin <= freeMin && endMin > freeMin) {
-        freeMin = endMin;
-        changed = true;
-        break;
-      }
-    }
-  }
-  return freeMin;
-}
-
-function liveStatus(events: ScheduleEvent[], nowMin: number, selectedDate: Date): { status: LiveStatus; note: string } {
-  if (nowMin >= 0) {
-    const current = events.find(ev => {
-      const { startMin, endMin } = eventMinutesForDay(ev, selectedDate);
-      return startMin <= nowMin && endMin > nowMin;
-    });
-    if (current) {
-      if (current.classNames.includes(EventClass.Maint) || current.classNames.includes(EventClass.Ovly)) {
-        return { status: 'maintenance', note: 'Maintenance' };
-      }
-      const { endMin } = eventMinutesForDay(current, selectedDate);
-      const freeMin = chainedFreeMinute(events, endMin, selectedDate);
-      return { status: 'in_use', note: `In use · free at ${minutesToTimeCompact(freeMin)}` };
-    }
-    const next = events
-      .filter(ev => eventMinutesForDay(ev, selectedDate).startMin > nowMin)
-      .sort((a, b) => eventMinutesForDay(a, selectedDate).startMin - eventMinutesForDay(b, selectedDate).startMin)[0];
-    if (next) return { status: 'available', note: `Available · till ${formatTimeCompact(next.start)}` };
-  }
-  return { status: 'available', note: 'Available' };
 }
 
 // ─── Horizontal view ─────────────────────────────────────────────────────────
@@ -277,7 +205,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
         </div>
         {aircraft.map((ac, i) => {
           const live = nowMin >= 0 ? liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate) : null;
-          const dotColor = live ? statusColor(live.status) : undefined;
+          const dotColor = live ? statusDotColor(live.status) : undefined;
           return (
             <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
