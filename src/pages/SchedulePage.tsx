@@ -412,7 +412,7 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
   const [viewMode, setViewMode]         = useState<'day' | 'week'>('day');
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [selectedTails, setSelectedTails] = useState<Set<string>>(() => new Set(AIRCRAFT.map(a => a.tail)));
+  const [selectedTails, setSelectedTails] = useState<Set<string>>(() => new Set(AIRCRAFT.filter(a => a.type !== 'sim').map(a => a.tail)));
   const [filterOpen, setFilterOpen] = useState(false);
   const portrait = usePortrait();
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
