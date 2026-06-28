@@ -107,6 +107,9 @@ function eventVisual(dest: string, classNames: EventClass[]): EventVisual {
   if (classNames.includes(EventClass.Maint)) {
     return { bg: MAINT_STRIPE, text: '#ffffff', subText: 'rgba(255,255,255,0.85)', stripe: true };
   }
+  if (classNames.includes(EventClass.Stby)) {
+    return { bg: 'var(--card)', text: '#00355f', subText: 'var(--muted-foreground)', dashed: true };
+  }
   const { type } = parseDestType(dest);
   switch (type) {
     case 'Training':

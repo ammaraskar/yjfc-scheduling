@@ -156,4 +156,11 @@ describe('getSchedule', () => {
     expect(events[0].classNames).toContain(EventClass.Ovly);
     expect(events[0].classNames).toHaveLength(1);
   });
+
+  it('parses stby1 className as a standby reservation', async () => {
+    const fetch = stubFetch([{ ...RAW_EVENTS[0], className: 'stby1' }]);
+    const events = await getSchedule('148772', 'S', new Date(2026, 5, 27), new Date(2026, 5, 28), 0, fetch);
+    expect(events[0].classNames).toContain(EventClass.Stby);
+    expect(events[0].classNames).toHaveLength(1);
+  });
 });
