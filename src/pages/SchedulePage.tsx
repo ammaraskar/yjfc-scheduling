@@ -6,7 +6,7 @@ function getInitials(info: UserInfo): string {
 }
 
 function TopBar() {
-  const { userInfo } = useAuth();
+  const { userInfo, logout } = useAuth();
 
   const initials = userInfo ? getInitials(userInfo) : '';
   const displayName = userInfo ? `${userInfo.firstName} ${userInfo.lastName}`.trim() : '';
@@ -26,17 +26,28 @@ function TopBar() {
         <span className="font-semibold text-sm">Yellow Jacket Flying Club</span>
       </div>
 
-      {userInfo && (
-        <div className="flex items-center gap-[10px]">
-          <span className="text-sm font-medium" style={{ opacity: 0.9 }}>{displayName}</span>
-          <div
-            className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-mono font-semibold text-xs"
-            style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}
-          >
-            {initials}
+      <div className="flex items-center gap-[14px]">
+        {userInfo && (
+          <div className="flex items-center gap-[10px]">
+            <span className="text-sm font-medium" style={{ opacity: 0.9 }}>{displayName}</span>
+            <div
+              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-mono font-semibold text-xs"
+              style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}
+            >
+              {initials}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        <button
+          onClick={logout}
+          className="text-xs font-medium px-3 py-1.5 rounded cursor-pointer transition-colors"
+          style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+        >
+          Sign out
+        </button>
+      </div>
     </div>
   );
 }
