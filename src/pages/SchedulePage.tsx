@@ -3,7 +3,7 @@ import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
 import { getSchedule, EventClass, type ScheduleEvent } from '@/api'
 import { useAuth } from '@/auth'
-import { AIRCRAFT, statusColor } from '@/data/aircraft'
+import { AIRCRAFT } from '@/data/aircraft'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SlidersHorizontal, ChevronDown } from 'lucide-react'
@@ -125,6 +125,35 @@ function useNowMinutes(): number {
   return min;
 }
 
+// ─── Live status ─────────────────────────────────────────────────────────────
+
+type LiveStatus = 'available' | 'in_use' | 'maintenance';
+
+function statusColor(s: LiveStatus): string {
+  switch (s) {
+    case 'available':   return '#1f9d57';
+    case 'in_use':      return 'var(--club-gold)';
+    case 'maintenance': return '#8a3d2f';
+  }
+}
+
+function liveStatus(events: ScheduleEvent[], nowMin: number): { status: LiveStatus; note: string } {
+  if (nowMin >= 0) {
+    const current = events.find(ev => minuteOfDay(ev.start) <= nowMin && minuteOfDay(ev.end) > nowMin);
+    if (current) {
+      if (current.classNames.includes(EventClass.Maint)) {
+        return { status: 'maintenance', note: 'Maintenance' };
+      }
+      return { status: 'in_use', note: `In use · free at ${formatTimeCompact(current.end)}` };
+    }
+    const next = events
+      .filter(ev => minuteOfDay(ev.start) > nowMin)
+      .sort((a, b) => minuteOfDay(a.start) - minuteOfDay(b.start))[0];
+    if (next) return { status: 'available', note: `Available · ${formatTimeCompact(next.start)}` };
+  }
+  return { status: 'available', note: 'Available' };
+}
+
 // ─── Horizontal view ─────────────────────────────────────────────────────────
 
 function HorizEvent({ event }: { event: ScheduleEvent }) {
@@ -186,7 +215,8 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)' }}>{aircraft.length}</span>
         </div>
         {aircraft.map((ac, i) => {
-          const dotColor = statusColor(ac.status);
+          const live = liveStatus(eventsByTail[ac.tail] ?? [], nowMin);
+          const dotColor = statusColor(live.status);
           return (
             <div key={ac.tail} style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -200,7 +230,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft }: { eventsByTail: Reco
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ac.statusNote}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.note}</span>
               </div>
             </div>
           );

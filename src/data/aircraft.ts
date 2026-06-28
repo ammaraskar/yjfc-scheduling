@@ -4,8 +4,6 @@ import n885gt from '@/assets/airplanes/N885GT.jpg'
 import n98714 from '@/assets/airplanes/N98714.jpg'
 import n2247t from '@/assets/airplanes/N2247T.jpg'
 
-export type AircraftStatus = 'available' | 'in_use' | 'maintenance';
-
 export interface Squawk {
   id: string;
   text: string;
@@ -24,8 +22,6 @@ export interface Aircraft {
   cruise: number;
   seats: number;
   ratePerHour: number;
-  status: AircraftStatus;
-  statusNote: string;
   hobbs: number;
   tach: number;
   hundredHrRemaining: number | null;
@@ -47,8 +43,6 @@ export const AIRCRAFT: Aircraft[] = [
     cruise: 105,
     seats: 4,
     ratePerHour: 155,
-    status: 'available',
-    statusNote: 'Available',
     hobbs: 7841.2,
     tach: 7204.8,
     hundredHrRemaining: 72.3,
@@ -68,8 +62,6 @@ export const AIRCRAFT: Aircraft[] = [
     cruise: 110,
     seats: 4,
     ratePerHour: 167,
-    status: 'available',
-    statusNote: 'Available',
     hobbs: 9120.4,
     tach: 8387.1,
     hundredHrRemaining: 54.7,
@@ -97,8 +89,6 @@ export const AIRCRAFT: Aircraft[] = [
     cruise: 122,
     seats: 4,
     ratePerHour: 177,
-    status: 'in_use',
-    statusNote: 'In use · free at 18:00',
     hobbs: 3284.6,
     tach: 2991.2,
     hundredHrRemaining: 8.4,
@@ -126,8 +116,6 @@ export const AIRCRAFT: Aircraft[] = [
     cruise: 110,
     seats: 4,
     ratePerHour: 155,
-    status: 'available',
-    statusNote: 'Available',
     hobbs: 11203.7,
     tach: 10388.5,
     hundredHrRemaining: 38.1,
@@ -147,8 +135,6 @@ export const AIRCRAFT: Aircraft[] = [
     cruise: 135,
     seats: 4,
     ratePerHour: 248,
-    status: 'maintenance',
-    statusNote: 'Maint · 100-hr inspection',
     hobbs: 2847.0,
     tach: 2610.4,
     hundredHrRemaining: 0,
@@ -167,8 +153,6 @@ export const AIRCRAFT: Aircraft[] = [
     cruise: 0,
     seats: 2,
     ratePerHour: 0,
-    status: 'available',
-    statusNote: 'Sim · Available',
     hobbs: 0,
     tach: 0,
     hundredHrRemaining: null,
@@ -184,10 +168,3 @@ export function getAircraft(tail: string): Aircraft | undefined {
   return AIRCRAFT.find(a => a.tail === tail);
 }
 
-export function statusColor(status: AircraftStatus): string {
-  switch (status) {
-    case 'available': return '#1f9d57';
-    case 'in_use': return 'var(--club-gold)';
-    case 'maintenance': return '#8a3d2f';
-  }
-}

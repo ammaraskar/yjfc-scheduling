@@ -1,17 +1,8 @@
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
-import { AIRCRAFT, statusColor, type Aircraft, type AircraftStatus } from '@/data/aircraft'
-
-function statusLabel(status: AircraftStatus): string {
-  switch (status) {
-    case 'available': return 'Available';
-    case 'in_use': return 'In use';
-    case 'maintenance': return 'Maintenance';
-  }
-}
+import { AIRCRAFT, type Aircraft } from '@/data/aircraft'
 
 function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
-  const color = statusColor(aircraft.status);
 
   return (
     <Link href={`/aircraft/${aircraft.tail}`}>
@@ -59,17 +50,7 @@ function AircraftCard({ aircraft }: { aircraft: Aircraft }) {
             {aircraft.makeModel} · {aircraft.year}
           </div>
 
-          {/* Status row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-[6px]">
-              <span
-                className="w-[8px] h-[8px] rounded-full shrink-0"
-                style={{ background: color }}
-              />
-              <span className="text-[12px] font-medium text-foreground">
-                {statusLabel(aircraft.status)}
-              </span>
-            </div>
+          <div className="flex items-center justify-end">
             <span className="font-mono font-semibold text-[13px] text-foreground">
               ${aircraft.ratePerHour}/hr
             </span>
@@ -92,20 +73,6 @@ export default function AircraftPage() {
             <p className="text-[13px] mt-[2px] text-muted-foreground">
               {AIRCRAFT.length} aircraft · KPDK
             </p>
-          </div>
-          <div className="flex items-center gap-[8px] text-[12px] font-medium text-muted-foreground">
-            <span className="flex items-center gap-[5px]">
-              <span className="w-[8px] h-[8px] rounded-full" style={{ background: '#1f9d57' }} />
-              Available
-            </span>
-            <span className="flex items-center gap-[5px] ml-2">
-              <span className="w-[8px] h-[8px] rounded-full" style={{ background: 'var(--club-gold)' }} />
-              In use
-            </span>
-            <span className="flex items-center gap-[5px] ml-2">
-              <span className="w-[8px] h-[8px] rounded-full" style={{ background: '#8a3d2f' }} />
-              Maintenance
-            </span>
           </div>
         </div>
 

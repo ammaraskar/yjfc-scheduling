@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
-import { getAircraft, type AircraftStatus } from '@/data/aircraft'
+import { getAircraft } from '@/data/aircraft'
 import { getResStatus, type ResStatus } from '@/api'
 import { useAuth } from '@/auth'
 
@@ -39,21 +39,6 @@ function parseSquawkEntries(detail: string): SquawkEntry[] {
   return entries;
 }
 
-function statusBadge(status: AircraftStatus, note: string) {
-  const styles: Record<AircraftStatus, React.CSSProperties> = {
-    available: { background: '#e4f3e9', color: '#1f7a45', border: '1px solid #b4e0c4' },
-    in_use: { background: '#fff4d6', color: '#9a6b00', border: '1px solid #f0dca0' },
-    maintenance: { background: '#fdf0ee', color: '#8a3d2f', border: '1px solid #e8c4bc' },
-  };
-  return (
-    <span
-      className="font-bold text-[10px] md:text-[11px] rounded-[20px] px-[9px] md:px-[11px] py-[3px] md:py-[4px]"
-      style={styles[status]}
-    >
-      ● {note}
-    </span>
-  );
-}
 
 function StatCard({ label, value, valueColor, loading }: { label: string; value: string; valueColor?: string; loading?: boolean }) {
   return (
@@ -229,7 +214,6 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                     >
                       {aircraft.tail}
                     </span>
-                    {statusBadge(aircraft.status, aircraft.statusNote)}
                   </div>
                   <div className="text-[13px] md:text-[14px] mt-[2px] md:mt-[4px] text-muted-foreground">
                     {aircraft.makeModel} · {aircraft.year}
