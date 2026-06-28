@@ -9,6 +9,19 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 
+// ─── Portrait detection ───────────────────────────────────────────────────────
+
+function usePortrait(): boolean {
+  const [portrait, setPortrait] = useState(() => window.innerHeight > window.innerWidth);
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait)');
+    const handler = (e: MediaQueryListEvent) => setPortrait(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return portrait;
+}
+
 // ─── Date helpers ────────────────────────────────────────────────────────────
 
 function startOfDay(d: Date): Date {
@@ -364,17 +377,27 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { events
         {/* Column headers */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
           <div style={{ width: 54, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
-          {aircraft.map((ac, i) => (
-            <div key={ac.tail} style={{ flex: 1, height: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <Link href={`/aircraft/${ac.tail}`}>
-                <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
-                  onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                  onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                >{ac.tail}</span>
-              </Link>
-              <span style={{ fontSize: 9.5, color: 'var(--muted-foreground)' }}>{ac.makeModel.split(' ')[1] ?? ''}</span>
-            </div>
-          ))}
+          {aircraft.map((ac, i) => {
+            const live = nowMin >= 0 ? liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate) : null;
+            const dotColor = live ? statusDotColor(live.status) : undefined;
+            return (
+              <div key={ac.tail} style={{ flex: 1, height: 62, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <Link href={`/aircraft/${ac.tail}`}>
+                  <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--foreground)', cursor: 'pointer', textDecoration: 'none' }}
+                    onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                    onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                  >{ac.tail}</span>
+                </Link>
+                <span style={{ fontSize: 9.5, color: 'var(--muted-foreground)' }}>{ac.makeModel.split(' ')[1] ?? ''}</span>
+                {live && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ fontSize: 9, color: 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{live.shortNote}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         {/* Body */}
         <div style={{ display: 'flex', height: totalH, position: 'relative' }}>
@@ -401,63 +424,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { events
   );
 }
 
-// ─── List view ────────────────────────────────────────────────────────────────
-
-function ListEvent({ event }: { event: ScheduleEvent }) {
-  const { type, sub } = parseDestType(event.dest);
-  const vis  = eventVisual(event.dest, event.classNames);
-  const name = event.name.trim() || sub;
-  const detail = event.tagMsg.trim();
-  const airport = parseDestAirport(event.dest);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-      <span style={{ fontSize: 11, color: 'var(--muted-foreground)', width: 110, flexShrink: 0, paddingTop: 1 }}>
-        {formatTimeCompact(event.start)}–{formatTimeCompact(event.end)}
-      </span>
-      <span style={{ fontWeight: 700, fontSize: 11, background: '#003057', color: '#fff', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
-        {event.tail}
-      </span>
-      <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '2px 8px', flexShrink: 0, background: vis.bg, color: vis.text, border: vis.dashed ? '1px dashed #00355f' : undefined }}>
-        {type}
-      </span>
-      {airport && (
-        <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 6px', flexShrink: 0, background: '#003057', color: '#fff', letterSpacing: '0.03em' }}>
-          {airport}
-        </span>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-        {detail && <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 1 }}>with {detail}</div>}
-      </div>
-    </div>
-  );
-}
-
-function ListView({ events }: { events: ScheduleEvent[] }) {
-  const sorted = [...events].sort((a, b) => a.start.localeCompare(b.start));
-  return (
-    <div style={{ background: 'var(--card)', padding: '0 16px' }}>
-      {sorted.length === 0 ? (
-        <div style={{ padding: '32px 0', textAlign: 'center', fontSize: 13, color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
-          No reservations
-        </div>
-      ) : (
-        sorted.map(ev => <ListEvent key={ev.id} event={ev} />)
-      )}
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
-
-type ViewMode = 'horizontal' | 'vertical' | 'list';
-
-const VIEW_LABELS: Record<ViewMode, string> = {
-  horizontal: '▦ Horizontal',
-  vertical:   '▥ Vertical',
-  list:       '☰ List',
-};
 
 export default function SchedulePage() {
   const { session } = useAuth();
@@ -465,7 +432,7 @@ export default function SchedulePage() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedTails, setSelectedTails] = useState<Set<string>>(() => new Set(AIRCRAFT.map(a => a.tail)));
   const [filterOpen, setFilterOpen] = useState(false);
-  const [view, setView] = useState<ViewMode>('horizontal');
+  const portrait = usePortrait();
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -585,27 +552,6 @@ export default function SchedulePage() {
             </PopoverContent>
           </Popover>
 
-          {/* View toggle */}
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', fontSize: 13, fontWeight: 600 }}>
-            {(Object.keys(VIEW_LABELS) as ViewMode[]).map((v, i) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                style={{
-                  padding: '6px 13px',
-                  background: view === v ? '#003057' : 'var(--card)',
-                  color: view === v ? '#fff' : 'var(--muted-foreground)',
-                  borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
-                  cursor: 'pointer',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: 13,
-                }}
-              >
-                {VIEW_LABELS[v]}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -634,11 +580,9 @@ export default function SchedulePage() {
           </div>
         )}
         {!loading && !error && (
-          <>
-            {view === 'horizontal' && <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />}
-            {view === 'vertical'   && <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />}
-            {view === 'list'       && <ListView events={filteredEvents} />}
-          </>
+          portrait
+            ? <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
+            : <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
         )}
       </div>
 

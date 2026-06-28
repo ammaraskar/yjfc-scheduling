@@ -47,7 +47,7 @@ export function liveStatus(
   events: ScheduleEvent[],
   nowMin: number,
   date: Date,
-): { status: LiveStatus; note: string } {
+): { status: LiveStatus; note: string; shortNote: string } {
   if (nowMin >= 0) {
     const current = events.find(ev => {
       const { startMin, endMin } = eventMinutesForDay(ev, date);
@@ -55,18 +55,22 @@ export function liveStatus(
     });
     if (current) {
       if (current.classNames.includes(EventClass.Maint) || current.classNames.includes(EventClass.Ovly)) {
-        return { status: 'maintenance', note: 'Maintenance' };
+        return { status: 'maintenance', note: 'Maintenance', shortNote: 'Maintenance' };
       }
       const { endMin } = eventMinutesForDay(current, date);
       const freeMin = chainedFreeMinute(events, endMin, date);
-      return { status: 'in_use', note: `In use · free at ${minutesToTimeCompact(freeMin)}` };
+      const freeAt = minutesToTimeCompact(freeMin);
+      return { status: 'in_use', note: `In use · free at ${freeAt}`, shortNote: `free at ${freeAt}` };
     }
     const next = events
       .filter(ev => eventMinutesForDay(ev, date).startMin > nowMin)
       .sort((a, b) => eventMinutesForDay(a, date).startMin - eventMinutesForDay(b, date).startMin)[0];
-    if (next) return { status: 'available', note: `Available · till ${minutesToTimeCompact(eventMinutesForDay(next, date).startMin)}` };
+    if (next) {
+      const till = minutesToTimeCompact(eventMinutesForDay(next, date).startMin);
+      return { status: 'available', note: `Available · till ${till}`, shortNote: `Avail · till ${till}` };
+    }
   }
-  return { status: 'available', note: 'Available' };
+  return { status: 'available', note: 'Available', shortNote: 'Avail' };
 }
 
 export function statusDotColor(s: LiveStatus): string {
