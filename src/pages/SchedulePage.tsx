@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
 import { getSchedule, EventClass, type ScheduleEvent, fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor, type MetarResponse, parseMaintDescription } from '@/api'
@@ -568,12 +569,12 @@ export default function SchedulePage() {
       {/* Legend strip */}
       <div className="flex items-center justify-between border-b border-border bg-muted" style={{ padding: '7px 18px', fontSize: 12, gap: 14, flexWrap: 'wrap' as const }}>
         <MetarStrip metar={metar} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
+        <div className="flex items-center flex-wrap" style={{ gap: 14 }}>
           <LegendItem color="#00355f" label="Rental" />
           <LegendItem color="var(--club-gold)" label="Training" />
-          <LegendItem color={undefined} label="Standby" dashed />
-          <LegendItem color={undefined} label="Maintenance" stripe />
-          <LegendItem color={OVLY_BG} label="Superseded" />
+          <LegendItem color={undefined} label="Standby" dashed className="hidden sm:flex" />
+          <LegendItem color={undefined} label={<><span className="hidden sm:inline">Maintenance</span><span className="sm:hidden">MX</span></>} stripe />
+          <LegendItem color={OVLY_BG} label="Superseded" className="hidden sm:flex" />
         </div>
       </div>
 
@@ -612,12 +613,12 @@ export default function SchedulePage() {
         <div className="flex items-center justify-between border-t border-border bg-muted" style={{ padding: '8px 18px', fontSize: 11, color: 'var(--muted-foreground)' }}>
           {viewMode === 'week' ? (
             <>
-              <span>{visibleAircraft.length} aircraft · {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} this week</span>
+              <span className="hidden sm:inline">{visibleAircraft.length} aircraft · {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} this week</span>
               <span>Each cell is a 6a–midnight timeline. Tap a cell to switch to day view.</span>
             </>
           ) : (
             <>
-              <span>{visibleAircraft.length} aircraft · {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''}</span>
+              <span className="hidden sm:inline">{visibleAircraft.length} aircraft · {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''}</span>
               <span>Local {localTime()} · {zuluTime()}</span>
             </>
           )}
@@ -636,27 +637,50 @@ function MetarStrip({ metar }: { metar: MetarResponse | null }) {
   const catColor = fltCatColor(metar.fltCat);
   const updated = formatUpdated(metar.receiptTime);
 
+  const badge = (
+    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: catColor, borderRadius: 4, padding: '1px 6px', lineHeight: '16px' }}>
+      {metar.fltCat}
+    </span>
+  );
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, color: 'var(--muted-foreground)' }}>
       <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--foreground)' }}>{id}</span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: catColor, borderRadius: 4, padding: '1px 6px', lineHeight: '16px' }}>
-        {metar.fltCat}
+
+      {/* On sm+: badge inline with no tooltip */}
+      <span className="hidden sm:inline">{badge}</span>
+
+      {/* On narrow: badge is tooltip trigger; details shown inside tooltip */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger className="sm:hidden" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            {badge}
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {vis} · {clouds} · {metar.temp}°C · Updated {updated}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <span style={{ fontWeight: 500 }}><span className="hidden sm:inline">Wind </span>{wind}</span>
+
+      {/* Extra details hidden on narrow screens */}
+      <span className="hidden sm:contents">
+        <span style={{ color: 'var(--border)' }}>·</span>
+        <span>{vis}</span>
+        <span style={{ color: 'var(--border)' }}>·</span>
+        <span>{clouds}</span>
+        <span style={{ color: 'var(--border)' }}>·</span>
+        <span>{metar.temp}°C</span>
+        <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.7 }}>Updated {updated}</span>
       </span>
-      <span style={{ fontWeight: 500 }}>Wind {wind}</span>
-      <span style={{ color: 'var(--border)' }}>·</span>
-      <span>{vis}</span>
-      <span style={{ color: 'var(--border)' }}>·</span>
-      <span>{clouds}</span>
-      <span style={{ color: 'var(--border)' }}>·</span>
-      <span>{metar.temp}°C</span>
-      <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.7 }}>Updated {updated}</span>
     </div>
   );
 }
 
-function LegendItem({ color, label, dashed, stripe }: { color?: string; label: string; dashed?: boolean; stripe?: boolean }) {
+function LegendItem({ color, label, dashed, stripe, className }: { color?: string; label: ReactNode; dashed?: boolean; stripe?: boolean; className?: string }) {
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted-foreground)', fontWeight: 500 }}>
+    <span className={`flex items-center text-[10px] sm:text-xs font-medium text-muted-foreground${className ? ` ${className}` : ''}`} style={{ gap: 6 }}>
       <span style={{
         width: 12, height: 12, borderRadius: 3,
         background: stripe ? MAINT_STRIPE : dashed ? undefined : color,
