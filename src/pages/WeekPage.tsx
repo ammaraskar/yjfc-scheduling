@@ -85,6 +85,16 @@ export function weekRangeLabel(days: Date[]): string {
     : `${sm} ${s.getDate()} – ${em} ${e.getDate()}, ${yr}`;
 }
 
+export function weekRangeLabelCompact(days: Date[]): string {
+  const s  = days[0];
+  const e  = days[6];
+  const sm = s.toLocaleDateString('en-US', { month: 'short' });
+  const em = e.toLocaleDateString('en-US', { month: 'short' });
+  return sm === em
+    ? `${sm} ${s.getDate()}–${e.getDate()}`
+    : `${sm} ${s.getDate()} – ${em} ${e.getDate()}`;
+}
+
 // Returns the [startIdx, endIdx] range within days[] that this event overlaps, or null.
 // An event is "spanning" (multi-column) when startIdx < endIdx — it crosses at least one midnight.
 function eventDayRange(event: ScheduleEvent, days: Date[]): { startIdx: number; endIdx: number } | null {

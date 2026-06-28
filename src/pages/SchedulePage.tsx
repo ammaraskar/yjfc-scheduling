@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SlidersHorizontal, ChevronDown, Wrench } from 'lucide-react'
 import { startOfDay, addDays, isToday, toDateParam, sundayOfWeek } from '@/lib/dateUtils'
 import { parseDestType, parseDestAirport, eventVisual, MAINT_STRIPE, OVLY_BG, formatTimeRange } from '@/lib/eventVisual'
-import { WeekGrid, weekRangeLabel } from './WeekPage'
+import { WeekGrid, weekRangeLabel, weekRangeLabelCompact } from './WeekPage'
 
 // ─── Portrait detection ───────────────────────────────────────────────────────
 
@@ -30,6 +30,10 @@ function usePortrait(): boolean {
 
 function formatDayLabel(d: Date): string {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDayLabelCompact(d: Date): string {
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function currentMinutes(): number {
@@ -450,7 +454,9 @@ export default function SchedulePage() {
   const allSelected     = selectedTails.size === AIRCRAFT.length;
   const visibleAircraft = AIRCRAFT.filter(a => selectedTails.has(a.tail));
   const showTodayBtn    = viewMode === 'day' ? !today : !days.some(d => isToday(d));
-  const dateLabel       = viewMode === 'week' ? weekRangeLabel(days) : formatDayLabel(selectedDate);
+  const dateLabel = viewMode === 'week'
+    ? (portrait ? weekRangeLabelCompact(days) : weekRangeLabel(days))
+    : (portrait ? formatDayLabelCompact(selectedDate) : formatDayLabel(selectedDate));
 
   function toggleTail(tail: string) {
     setSelectedTails(prev => {
@@ -471,74 +477,75 @@ export default function SchedulePage() {
 
   return (
     <div className="h-screen flex flex-col bg-muted overflow-hidden">
-      <TopBar />
+      {!portrait && <TopBar />}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between border-b border-border bg-card" style={{ padding: '10px 16px', gap: 12, flexWrap: 'wrap' as const, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
-          {/* Date / week navigator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', borderRadius: 8, padding: '4px 5px' }}>
-            <button
-              onClick={prevPeriod}
-              style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
-            >‹</button>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger
-                style={{ fontWeight: 700, fontSize: 14, minWidth: viewMode === 'week' ? 190 : 170, textAlign: 'center', userSelect: 'none', color: 'var(--foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 5 }}
-              >
-                {dateLabel}
-              </PopoverTrigger>
-              <PopoverContent align="start" style={{ width: 'auto', padding: 0 }}>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={d => { if (d) { setSelectedDate(startOfDay(d)); setCalendarOpen(false); } }}
-                  classNames={{
-                    today: 'rounded-[var(--cell-radius)] ring-2 ring-club-gold ring-offset-1 font-bold data-[selected=true]:rounded-none',
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            <button
-              onClick={nextPeriod}
-              style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
-            >›</button>
-          </div>
-          {showTodayBtn && (
-            <button
-              onClick={() => setSelectedDate(startOfDay(new Date()))}
-              style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 13px', cursor: 'pointer', background: 'var(--card)' }}
+      <div className="flex items-center border-b border-border bg-card" style={{ padding: portrait ? '6px 10px' : '10px 16px', gap: portrait ? 6 : 12, overflow: 'hidden' }}>
+        {/* Date / week navigator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', borderRadius: 8, padding: '4px 5px', flexShrink: 0 }}>
+          <button
+            onClick={prevPeriod}
+            style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
+          >‹</button>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger
+              style={{ fontWeight: 700, fontSize: portrait ? 13 : 14, minWidth: portrait ? 0 : (viewMode === 'week' ? 190 : 170), textAlign: 'center', userSelect: 'none', color: 'var(--foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 5 }}
             >
-              Today
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Day / Week toggle */}
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-            <button
-              onClick={() => setViewMode('day')}
-              style={{ padding: '6px 14px', background: viewMode === 'day' ? '#003057' : 'var(--card)', color: viewMode === 'day' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-            >Day</button>
-            <button
-              onClick={() => setViewMode('week')}
-              style={{ padding: '6px 14px', background: viewMode === 'week' ? '#003057' : 'var(--card)', color: viewMode === 'week' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderLeft: '1px solid var(--border)' }}
-            >Week</button>
-          </div>
-          {/* Aircraft filter */}
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px',
-              background: allSelected ? 'var(--card)' : '#003057',
-              color: allSelected ? 'var(--muted-foreground)' : '#fff',
-              cursor: 'pointer', fontSize: 13, fontWeight: 600,
-            }}>
-              <SlidersHorizontal size={14} />
-              {allSelected ? 'All aircraft' : `${selectedTails.size} aircraft`}
-              <ChevronDown size={13} />
+              {dateLabel}
             </PopoverTrigger>
+            <PopoverContent align="start" style={{ width: 'auto', padding: 0 }}>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={d => { if (d) { setSelectedDate(startOfDay(d)); setCalendarOpen(false); } }}
+                classNames={{
+                  today: 'rounded-[var(--cell-radius)] ring-2 ring-club-gold ring-offset-1 font-bold data-[selected=true]:rounded-none',
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          <button
+            onClick={nextPeriod}
+            style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)', borderRadius: 5, cursor: 'pointer', background: 'none', border: 'none', fontSize: 16 }}
+          >›</button>
+        </div>
+        {showTodayBtn && !portrait && (
+          <button
+            onClick={() => setSelectedDate(startOfDay(new Date()))}
+            style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 13px', cursor: 'pointer', background: 'var(--card)', flexShrink: 0 }}
+          >
+            Today
+          </button>
+        )}
+
+        <div style={{ flex: 1 }} />
+
+        {/* Day / Week toggle */}
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+          <button
+            onClick={() => setViewMode('day')}
+            style={{ padding: portrait ? '6px 10px' : '6px 14px', background: viewMode === 'day' ? '#003057' : 'var(--card)', color: viewMode === 'day' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+          >Day</button>
+          <button
+            onClick={() => setViewMode('week')}
+            style={{ padding: portrait ? '6px 10px' : '6px 14px', background: viewMode === 'week' ? '#003057' : 'var(--card)', color: viewMode === 'week' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderLeft: '1px solid var(--border)' }}
+          >Week</button>
+        </div>
+        {/* Aircraft filter */}
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px',
+            background: allSelected ? 'var(--card)' : '#003057',
+            color: allSelected ? 'var(--muted-foreground)' : '#fff',
+            cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0,
+          }}>
+            <SlidersHorizontal size={14} />
+            {portrait
+              ? (allSelected ? 'All' : `${selectedTails.size}`)
+              : (allSelected ? 'All aircraft' : `${selectedTails.size} aircraft`)}
+            <ChevronDown size={13} />
+          </PopoverTrigger>
             <PopoverContent align="end" style={{ width: 200, padding: '8px 0' }}>
               <div style={{ padding: '4px 12px 8px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>Aircraft</span>
@@ -563,7 +570,6 @@ export default function SchedulePage() {
               ))}
             </PopoverContent>
           </Popover>
-        </div>
       </div>
 
       {/* Legend strip */}
