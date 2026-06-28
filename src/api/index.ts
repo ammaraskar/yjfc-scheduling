@@ -6,3 +6,5 @@ export { getUserInfo, parseUserInfo } from './userinfo';
 export type { UserInfo } from './userinfo';
 export { getResStatus, parseResStatus } from './resstatus';
 export type { ResStatus, LiveSquawk, MaintenanceItem } from './resstatus';
+export { getSchedule } from './schedule';
+export type { ScheduleEvent } from './schedule';
