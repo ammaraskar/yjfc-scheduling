@@ -477,7 +477,7 @@ export default function SchedulePage() {
 
   return (
     <div className="h-screen flex flex-col bg-muted overflow-hidden">
-      {!portrait && <TopBar />}
+      <TopBar />
 
       {/* Toolbar */}
       <div className="flex items-center border-b border-border bg-card" style={{ padding: portrait ? '6px 10px' : '10px 16px', gap: portrait ? 6 : 12, overflow: 'hidden' }}>

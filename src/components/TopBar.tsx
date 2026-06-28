@@ -99,26 +99,6 @@ export default function TopBar() {
           </div>
         </div>
 
-        <nav className="flex md:hidden gap-[8px] text-[13px] font-medium overflow-x-auto pb-[2px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {NAV_LINKS.map(({ label, href }) => {
-            const active = location.startsWith(href);
-            return (
-              <Link key={href} href={href}>
-                <span
-                  className="cursor-pointer whitespace-nowrap rounded-[7px] px-[10px] py-[4px]"
-                  style={{
-                    color: active ? '#fff' : 'rgba(255,255,255,0.78)',
-                    fontWeight: active ? 600 : 500,
-                    borderBottom: '2px solid transparent',
-                    background: active ? 'rgba(255,255,255,0.14)' : 'transparent',
-                  }}
-                >
-                  {label}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
       </div>
     </div>
   );
