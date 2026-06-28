@@ -22,6 +22,11 @@ const DAY_GRID_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 const DAY_TICK_HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
 const DAY_LABEL_HOURS = [8, 14, 20]; // 8a, 2p, 8p
 
+// NOW line styling (matches SchedulePage day view)
+const NOW_LINE_COLOR = 'var(--club-gold)';
+const NOW_LINE_OPACITY = 0.5;
+const NOW_LINE_WIDTH = 1.5;
+
 function toTimePct(minutes: number): number {
   return Math.max(0, Math.min(100, (minutes - GRID_START) / GRID_SPAN * 100));
 }
@@ -196,6 +201,38 @@ function WeekTimeRow() {
   );
 }
 
+// ─── NOW line (current time indicator) ────────────────────────────────────────
+
+function WeekNowLine({ nowMin, days }: { nowMin: number; days: Date[] }) {
+  // Only show if nowMin is valid (>= 0) and within grid bounds
+  if (nowMin < 0 || nowMin < GRID_START || nowMin > GRID_END) return null;
+
+  // Find which column is today
+  const todayIdx = days.findIndex(day => isToday(day));
+  if (todayIdx === -1) return null;
+
+  // Calculate position: (day column) + (time within that day)
+  const colW = 100 / 7;
+  const timePct = toTimePct(nowMin);
+  const leftPct = todayIdx * colW + (timePct * colW / 100);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: `${leftPct}%`,
+        width: NOW_LINE_WIDTH,
+        background: NOW_LINE_COLOR,
+        opacity: NOW_LINE_OPACITY,
+        pointerEvents: 'none',
+        zIndex: 20,
+      }}
+    />
+  );
+}
+
 // ─── Spanning event banner ────────────────────────────────────────────────────
 //
 // Events that cross one or more midnight boundaries appear as a banner spanning
@@ -262,12 +299,13 @@ function SpanBanner({ event, startIdx, endIdx }: {
 
 // ─── Week grid row (one aircraft across 7 days) ───────────────────────────────
 
-function WeekRow({ ac, tailEvents, days, isLast, onSelectDay }: {
+function WeekRow({ ac, tailEvents, days, isLast, onSelectDay, nowMin }: {
   ac: Aircraft;
   tailEvents: ScheduleEvent[];
   days: Date[];
   isLast: boolean;
   onSelectDay: (date: Date) => void;
+  nowMin: number;
 }) {
   const spanning: Array<{ event: ScheduleEvent; startIdx: number; endIdx: number }> = [];
   const dayMap: Record<number, ScheduleEvent[]> = {};
@@ -325,6 +363,9 @@ function WeekRow({ ac, tailEvents, days, isLast, onSelectDay }: {
             ))}
           </div>
         )}
+
+        {/* Layer 3: NOW line indicator */}
+        <WeekNowLine nowMin={nowMin} days={days} />
       </div>
     </div>
   );
@@ -364,11 +405,12 @@ function WeekHeader({ days }: { days: Date[] }) {
 
 // ─── WeekGrid ─────────────────────────────────────────────────────────────────
 
-export function WeekGrid({ days, events, visibleAircraft, onSelectDay }: {
+export function WeekGrid({ days, events, visibleAircraft, onSelectDay, nowMin }: {
   days: Date[];
   events: ScheduleEvent[];
   visibleAircraft: Aircraft[];
   onSelectDay: (date: Date) => void;
+  nowMin?: number;
 }) {
   const eventsByTail = events.reduce<Record<string, ScheduleEvent[]>>((acc, ev) => {
     if (ev.tail) (acc[ev.tail] ??= []).push(ev);
@@ -386,6 +428,7 @@ export function WeekGrid({ days, events, visibleAircraft, onSelectDay }: {
           days={days}
           isLast={i === visibleAircraft.length - 1}
           onSelectDay={onSelectDay}
+          nowMin={nowMin ?? -1}
         />
       ))}
       <WeekTimeRow />
