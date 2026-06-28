@@ -316,6 +316,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
 // ─── Vertical view ────────────────────────────────────────────────────────────
 
 const ROW_H = 42; // px per hour
+const VERT_TIME_COL_W = 32;
 
 function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate: Date }) {
   const { startMin, endMin } = eventMinutesForDay(event, selectedDate);
@@ -368,7 +369,7 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const topPct = (nowMin - GRID_START) / GRID_SPAN * 100;
   return (
-    <div style={{ position: 'absolute', left: 54, right: 0, top: `${topPct}%`, height: 2, background: 'var(--club-gold)', pointerEvents: 'none', zIndex: 10 }}>
+    <div style={{ position: 'absolute', left: VERT_TIME_COL_W, right: 0, top: `${topPct}%`, height: 2, background: 'var(--club-gold)', pointerEvents: 'none', zIndex: 10 }}>
       <div style={{ position: 'absolute', left: -4, top: -4, width: 10, height: 10, borderRadius: '50%', background: 'var(--club-gold)', border: '2px solid var(--card)' }} />
     </div>
   );
@@ -381,7 +382,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { events
       <div style={{ minWidth: 540 }}>
         {/* Column headers */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
-          <div style={{ width: 54, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
+          <div style={{ width: VERT_TIME_COL_W, flexShrink: 0, borderRight: '1px solid var(--border)' }} />
           {aircraft.map((ac, i) => {
             const live = nowMin >= 0 ? liveStatus(eventsByTail[ac.tail] ?? [], nowMin, selectedDate) : null;
             const dotColor = live ? statusDotColor(live.status) : undefined;
@@ -407,9 +408,9 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { events
         {/* Body */}
         <div style={{ display: 'flex', height: totalH, position: 'relative' }}>
           {/* Hour gutter */}
-          <div style={{ width: 54, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ width: VERT_TIME_COL_W, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
             {HOURS.map(h => (
-              <div key={h} style={{ height: ROW_H, fontSize: 10, color: 'var(--muted-foreground)', padding: '3px 0 0 7px', borderTop: '1px solid var(--border)' }}>
+              <div key={h} style={{ height: ROW_H, fontSize: 10, color: 'var(--muted-foreground)', padding: '3px 0 0 5px', borderTop: '1px solid var(--border)' }}>
                 {hourLabel(h)}
               </div>
             ))}
