@@ -17,8 +17,8 @@ export interface MetarResponse {
   icaoId: string;
   receiptTime: string;
   temp: number;
-  wdir: number;
-  wspd: number;
+  wdir?: number;
+  wspd?: number;
   wgst?: number;
   visib: string | number;
   fltCat: string;
@@ -61,8 +61,12 @@ export function displayId(icaoId: string): string {
   return icaoId.startsWith('K') && icaoId.length === 4 ? icaoId.slice(1) : icaoId;
 }
 
-export function formatWind(wdir: number, wspd: number, wgst?: number): string {
-  return wgst ? `${wdir}@${wspd}G${wgst}` : `${wdir}@${wspd}`;
+export function formatWind(wdir?: number, wspd?: number, wgst?: number): string {
+  // Some METAR responses omit wind fields for calm conditions.
+  if (typeof wspd !== 'number' || wspd === 0) return 'Calm';
+
+  const dir = typeof wdir === 'number' ? String(wdir).padStart(3, '0') : 'VRB';
+  return typeof wgst === 'number' ? `${dir}@${wspd}G${wgst}` : `${dir}@${wspd}`;
 }
 
 export function formatVisib(visib: string | number): string {

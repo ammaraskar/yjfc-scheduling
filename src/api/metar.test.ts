@@ -47,6 +47,15 @@ describe('fetchMetar', () => {
     expect(result.fltCat).toBe('VFR');
   });
 
+  it('supports responses where wind fields are omitted', async () => {
+    const { wdir, wspd, wgst, ...base } = SAMPLE;
+    const result = await fetchMetar('KPDK', mockApiFetch([base]));
+
+    expect(result.wdir).toBeUndefined();
+    expect(result.wspd).toBeUndefined();
+    expect(result.wgst).toBeUndefined();
+  });
+
   it('throws when the response array is empty', async () => {
     await expect(fetchMetar('KPDK', mockApiFetch([]))).rejects.toThrow('No METAR for KPDK');
   });
@@ -97,6 +106,15 @@ describe('formatWind', () => {
 
   it('appends gust when provided', () => {
     expect(formatWind(300, 13, 20)).toBe('300@13G20');
+  });
+
+  it('returns Calm when speed is missing or zero', () => {
+    expect(formatWind(undefined, undefined)).toBe('Calm');
+    expect(formatWind(180, 0)).toBe('Calm');
+  });
+
+  it('uses VRB when direction is missing but speed exists', () => {
+    expect(formatWind(undefined, 5)).toBe('VRB@5');
   });
 });
 
