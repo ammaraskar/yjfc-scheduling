@@ -4,7 +4,7 @@ export { apiClient, createClient } from './client';
 export type { ApiFetch } from './client';
 export { getUserInfo, parseUserInfo } from './userinfo';
 export type { UserInfo } from './userinfo';
-export { getResStatus, parseResStatus } from './resstatus';
+export { getResStatus, parseResStatus, parseMaintDescription } from './resstatus';
 export type { ResStatus, LiveSquawk, MaintenanceItem } from './resstatus';
 export { getSchedule, EventClass } from './schedule';
 export type { ScheduleEvent } from './schedule';

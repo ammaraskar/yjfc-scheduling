@@ -26,6 +26,28 @@ export interface ResStatus {
   maintenanceItems: MaintenanceItem[];
 }
 
+export function parseMaintDescription(info: string): string {
+  // Parse semicolon-delimited fields: "shortForm;;fullDescription;;mob:...;;email;;..."
+  // Sometimes fullDescription is omitted: "shortForm;;mob:...;;email;;..."
+  // Contact info fields start with "mob:" or contain "@"
+  const parts = info
+    .split(';;')
+    .map(p => p.trim())
+    .filter(p => p && p !== ';'); // Filter out empty and lone semicolons
+  
+  // Helper to check if a part is contact info
+  const isContactInfo = (part: string): boolean => 
+    part.startsWith('mob:') || part.includes('@');
+  
+  // If we have at least 2 parts and the second one is NOT contact info, use it
+  if (parts.length > 1 && !isContactInfo(parts[1])) {
+    return parts[1];
+  }
+  
+  // Otherwise fall back to the first part (short description)
+  return parts[0] || '';
+}
+
 export function parseResStatus(html: string): ResStatus {
   const doc = new DOMParser().parseFromString(html, 'text/html');
 

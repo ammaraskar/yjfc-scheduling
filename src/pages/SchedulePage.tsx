@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
-import { getSchedule, EventClass, type ScheduleEvent, fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor, type MetarResponse } from '@/api'
+import { getSchedule, EventClass, type ScheduleEvent, fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor, type MetarResponse, parseMaintDescription } from '@/api'
 import { eventMinutesForDay, liveStatus, statusDotColor } from '@/lib/liveStatus'
 import { useAuth } from '@/auth'
 import { AIRCRAFT } from '@/data/aircraft'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { SlidersHorizontal, ChevronDown } from 'lucide-react'
+import { SlidersHorizontal, ChevronDown, Wrench } from 'lucide-react'
 
 // ─── Portrait detection ───────────────────────────────────────────────────────
 
@@ -223,8 +223,9 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
 
   const vis  = eventVisual(event.dest, event.classNames);
   const { sub } = parseDestType(event.dest);
-  const name = event.name.trim() || sub;
-  const detail = event.tagMsg.trim();
+  const isMaint = event.classNames.includes(EventClass.Maint);
+  const name = isMaint ? 'Maintenance' : event.name.trim() || sub;
+  const detail = isMaint ? parseMaintDescription(event.info).trim() : event.tagMsg.trim();
   const predone = event.classNames.includes(EventClass.Predone);
   const clipsLeft  = startMin < GRID_START;
   const clipsRight = endMin   > EVENT_EDGE_CLIP_END;
@@ -234,6 +235,12 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
   const rOff = clipsRight ? 0 : 2;
 
   const airport = parseDestAirport(event.dest);
+  
+  // Truncate description if too long (max ~40 chars)
+  const truncateDesc = (desc: string): string => {
+    if (desc.length > 40) return desc.substring(0, 37) + '...';
+    return desc;
+  };
 
   return (
     <div style={{
@@ -252,12 +259,14 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
       boxSizing: 'border-box',
       zIndex: vis.overlay ? 5 : undefined,
     }}>
+      {isMaint && <Wrench size={16} style={{ flexShrink: 0 }} />}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {name}
         </span>
-        <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap' }}>
-          {formatTimeRange(event)}{detail ? ` · ${detail}` : ''}{predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
+        <span style={{ fontSize: 11.5, color: vis.subText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {isMaint ? truncateDesc(detail) : `${formatTimeRange(event)}${detail ? ` · ${detail}` : ''}`}
+          {predone && <span style={{ color: '#16a34a' }}> · ✓ precheck</span>}
         </span>
       </div>
       {airport && (
@@ -368,7 +377,8 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
 
   const vis  = eventVisual(event.dest, event.classNames);
   const { sub } = parseDestType(event.dest);
-  const name = event.name.trim() || sub;
+  const isMaint = event.classNames.includes(EventClass.Maint);
+  const name = isMaint ? 'Maintenance' : event.name.trim() || sub;
   const predone = event.classNames.includes(EventClass.Predone);
   const airport = parseDestAirport(event.dest);
   const rT = clipsTop    ? 0 : 6;
@@ -391,10 +401,11 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       boxShadow: vis.dashed ? 'none' : '0 1px 3px rgba(0,0,0,.15)',
       zIndex: vis.overlay ? 5 : undefined,
     }}>
+      {isMaint && <Wrench size={14} style={{ marginBottom: 3 }} />}
       {predone && <div style={{ fontSize: 10, fontWeight: 600, color: '#16a34a', marginBottom: 2 }}>✓ precheck</div>}
       <div style={{ fontWeight: 600, fontSize: 12, overflowWrap: 'break-word' }}>{name}</div>
-      <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1 }}>
-        {formatTimeRange(event)}
+      <div style={{ fontSize: 10.5, color: vis.subText, marginTop: 1, overflowWrap: 'break-word' }}>
+        {isMaint ? parseMaintDescription(event.info).trim() : formatTimeRange(event)}
       </div>
       {airport && (
         <div style={{ marginTop: 3 }}>

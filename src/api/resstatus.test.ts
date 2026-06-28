@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
-import { getResStatus, parseResStatus } from './resstatus';
+import { getResStatus, parseResStatus, parseMaintDescription } from './resstatus';
 
 const FIXTURE_HTML = `<!DOCTYPE html>
 <html><body>
@@ -151,5 +151,48 @@ describe('getResStatus', () => {
   it('throws when response is not ok', async () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 403 }));
     await expect(getResStatus('x', 'y', 'N885GT', mockFetch)).rejects.toThrow('getResStatus failed: 403');
+  });
+});
+
+describe('parseMaintDescription', () => {
+  it('extracts full description from semicolon-delimited fields', () => {
+    const info = '100-hr;;100-hour inspection at GVL;;mob:678-777-6788;;whitmerm@thenerdwerks.com;;';
+    expect(parseMaintDescription(info)).toBe('100-hour inspection at GVL');
+  });
+
+  it('falls back to short description when full description is missing', () => {
+    const info = 'Repainting;;mob:7702654914;;owengcarroll@gmail.com;;';
+    expect(parseMaintDescription(info)).toBe('Repainting');
+  });
+
+  it('falls back to first part when only one field exists', () => {
+    const info = 'Single field description';
+    expect(parseMaintDescription(info)).toBe('Single field description');
+  });
+
+  it('handles whitespace correctly', () => {
+    const info = '  short  ;;  full description  ;;  mob:123  ;;';
+    expect(parseMaintDescription(info)).toBe('full description');
+  });
+
+  it('returns empty string when input is empty or all whitespace', () => {
+    expect(parseMaintDescription('')).toBe('');
+    expect(parseMaintDescription(';;')).toBe('');
+    expect(parseMaintDescription('   ;;   ;;   ')).toBe('');
+  });
+
+  it('returns empty string when all parts are empty after trimming', () => {
+    const info = ';;;;;;;';
+    expect(parseMaintDescription(info)).toBe('');
+  });
+
+  it('detects email addresses in any field as contact info', () => {
+    const info = 'short;;user@example.com;;other;;';
+    expect(parseMaintDescription(info)).toBe('short');
+  });
+
+  it('handles "mob:" prefix correctly', () => {
+    const info = 'Inspection;;mob:555-1234;;';
+    expect(parseMaintDescription(info)).toBe('Inspection');
   });
 });
