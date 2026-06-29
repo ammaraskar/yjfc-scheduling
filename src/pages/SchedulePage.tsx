@@ -12,7 +12,8 @@ import { SlidersHorizontal, ChevronDown, Wrench } from 'lucide-react'
 import { startOfDay, addDays, isToday, toDateParam, sundayOfWeek } from '@/lib/dateUtils'
 import { parseDestType, parseDestAirport, eventVisual, MAINT_STRIPE, OVLY_BG, formatTimeRange } from '@/lib/eventVisual'
 import { WeekGrid, weekRangeLabel, weekRangeLabelCompact } from './WeekPage'
-import { NewEventCard, DEFAULT_DURATION, type DraftState, type DestType, type CardPos, minToCompact } from '@/components/NewEventCard'
+import { NewEventCard, REGULAR_DEFAULT_DURATION, type DraftState, type DestType, type CardPos, minToCompact } from '@/components/NewEventCard'
+import { TRAINER_SLOTS, type SchedulingType } from '@/data/aircraft'
 
 
 // ─── Portrait detection ───────────────────────────────────────────────────────
@@ -86,6 +87,28 @@ function snapMin(min: number): number {
 
 function clampNum(val: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, val));
+}
+
+function snapTrainer(min: number): number {
+  return TRAINER_SLOTS.reduce((best, s) =>
+    Math.abs(s - min) < Math.abs(best - min) ? s : best
+  , TRAINER_SLOTS[0]);
+}
+
+
+function trainerNextSlot(afterMin: number): number {
+  return TRAINER_SLOTS.find(s => s > afterMin) ?? GRID_END;
+}
+
+function trainerPrevSlot(beforeMin: number): number {
+  return [...TRAINER_SLOTS].reverse().find(s => s < beforeMin) ?? TRAINER_SLOTS[0];
+}
+
+function hasOverlap(events: ScheduleEvent[], startMin: number, endMin: number, date: Date): boolean {
+  return events.some(ev => {
+    const { startMin: evStart, endMin: evEnd } = eventMinutesForDay(ev, date);
+    return startMin < evEnd && endMin > evStart;
+  });
 }
 
 // ─── METAR hook ──────────────────────────────────────────────────────────────
@@ -209,8 +232,8 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
 }
 
 // Draft chip rendered directly in the horizontal timeline row
-function DraftHorizChip({ startMin, endMin, destType, onChangeTimes }: {
-  startMin: number; endMin: number; destType: DestType;
+function DraftHorizChip({ startMin, endMin, destType, schedulingType, onChangeTimes }: {
+  startMin: number; endMin: number; destType: DestType; schedulingType: SchedulingType;
   onChangeTimes: (start: number, end: number) => void;
 }) {
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -236,13 +259,27 @@ function DraftHorizChip({ startMin, endMin, destType, onChangeTimes }: {
       const deltaMin = (ev.clientX - anchorX) / trackW * GRID_SPAN;
       const dur = anchorEnd - anchorStart;
       let ns = anchorStart, ne = anchorEnd;
-      if (target === 'start') {
-        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, anchorEnd - DRAFT_MIN_DURATION));
-      } else if (target === 'end') {
-        ne = snapMin(clampNum(anchorEnd + deltaMin, anchorStart + DRAFT_MIN_DURATION, GRID_END));
+      if (schedulingType === 'trainer') {
+        if (target === 'start') {
+          ns = snapTrainer(anchorStart + deltaMin);
+          if (ns >= anchorEnd) ns = trainerPrevSlot(anchorEnd);
+        } else if (target === 'end') {
+          ne = snapTrainer(anchorEnd + deltaMin);
+          if (ne <= anchorStart) ne = trainerNextSlot(anchorStart);
+        } else {
+          ns = snapTrainer(anchorStart + deltaMin);
+          ne = trainerNextSlot(ns - 1 + dur); // preserve slot span
+          if (ns >= ne) ne = trainerNextSlot(ns);
+        }
       } else {
-        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, GRID_END - dur));
-        ne = ns + dur;
+        if (target === 'start') {
+          ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, anchorEnd - DRAFT_MIN_DURATION));
+        } else if (target === 'end') {
+          ne = snapMin(clampNum(anchorEnd + deltaMin, anchorStart + DRAFT_MIN_DURATION, GRID_END));
+        } else {
+          ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, GRID_END - dur));
+          ne = ns + dur;
+        }
       }
       onChangeTimes(ns, ne);
     }
@@ -347,7 +384,7 @@ function HorizNowLine({ nowMin }: { nowMin: number }) {
 }
 
 function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClick, draft, onDraftChange }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date; onSlotClick: (tail: string, clickedMin: number, cx: number, cy: number, rect: DOMRect) => void; draft: DraftState | null; onDraftChange: (start: number, end: number) => void }) {
-  const [hover, setHover] = useState<{ tail: string; startMin: number } | null>(null);
+  const [hover, setHover] = useState<{ tail: string; startMin: number; valid: boolean } | null>(null);
   return (
     <div style={{ display: 'flex', background: 'var(--card)' }}>
       {/* Aircraft sidebar */}
@@ -397,7 +434,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotCl
               <div
                 key={ac.tail}
                 data-timeline-row=""
-                style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'cell' }}
+                style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', cursor: !draft && hover?.tail === ac.tail && !hover.valid ? 'default' : 'cell' }}
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   onSlotClick(ac.tail, GRID_START + ((e.clientX - rect.left) / rect.width) * GRID_SPAN, e.clientX, e.clientY, rect);
@@ -405,18 +442,25 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotCl
                 onMouseMove={(e) => {
                   if (draft) return;
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const min = GRID_START + ((e.clientX - rect.left) / rect.width) * GRID_SPAN;
-                  setHover({ tail: ac.tail, startMin: snapMin(clampNum(min, GRID_START, GRID_END - DEFAULT_DURATION)) });
+                  const raw = GRID_START + ((e.clientX - rect.left) / rect.width) * GRID_SPAN;
+                  const startMin = ac.schedulingType === 'trainer'
+                    ? snapTrainer(raw)
+                    : snapMin(clampNum(raw, GRID_START, GRID_END - REGULAR_DEFAULT_DURATION));
+                  const endMin = ac.schedulingType === 'trainer'
+                    ? trainerNextSlot(startMin)
+                    : Math.min(startMin + REGULAR_DEFAULT_DURATION, GRID_END);
+                  const valid = !hasOverlap(eventsByTail[ac.tail] ?? [], startMin, endMin, selectedDate);
+                  setHover({ tail: ac.tail, startMin, valid });
                 }}
                 onMouseLeave={() => setHover(null)}
               >
                 {(eventsByTail[ac.tail] ?? []).map(ev => (
                   <HorizEvent key={ev.id} event={ev} selectedDate={selectedDate} />
                 ))}
-                {!draft && hover?.tail === ac.tail && (
+                {!draft && hover?.tail === ac.tail && hover.valid && (
                   <HoverHorizChip
                     startMin={hover.startMin}
-                    endMin={Math.min(hover.startMin + DEFAULT_DURATION, GRID_END)}
+                    endMin={ac.schedulingType === 'trainer' ? trainerNextSlot(hover.startMin) : Math.min(hover.startMin + REGULAR_DEFAULT_DURATION, GRID_END)}
                   />
                 )}
                 {draft?.tail === ac.tail && (
@@ -424,6 +468,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotCl
                     startMin={draft.startMin}
                     endMin={draft.endMin}
                     destType={draft.destType}
+                    schedulingType={ac.schedulingType}
                     onChangeTimes={onDraftChange}
                   />
                 )}
@@ -499,8 +544,8 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
 }
 
 // Draft chip rendered directly in the vertical timeline column
-function DraftVertChip({ startMin, endMin, destType, onChangeTimes }: {
-  startMin: number; endMin: number; destType: DestType;
+function DraftVertChip({ startMin, endMin, destType, schedulingType, onChangeTimes }: {
+  startMin: number; endMin: number; destType: DestType; schedulingType: SchedulingType;
   onChangeTimes: (start: number, end: number) => void;
 }) {
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -529,13 +574,27 @@ function DraftVertChip({ startMin, endMin, destType, onChangeTimes }: {
       const deltaMin = (ev.clientY - anchorY) / colH * GRID_SPAN;
       const dur = anchorEnd - anchorStart;
       let ns = anchorStart, ne = anchorEnd;
-      if (target === 'start') {
-        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, anchorEnd - DRAFT_MIN_DURATION));
-      } else if (target === 'end') {
-        ne = snapMin(clampNum(anchorEnd + deltaMin, anchorStart + DRAFT_MIN_DURATION, GRID_END));
+      if (schedulingType === 'trainer') {
+        if (target === 'start') {
+          ns = snapTrainer(anchorStart + deltaMin);
+          if (ns >= anchorEnd) ns = trainerPrevSlot(anchorEnd);
+        } else if (target === 'end') {
+          ne = snapTrainer(anchorEnd + deltaMin);
+          if (ne <= anchorStart) ne = trainerNextSlot(anchorStart);
+        } else {
+          ns = snapTrainer(anchorStart + deltaMin);
+          ne = trainerNextSlot(ns - 1 + dur);
+          if (ns >= ne) ne = trainerNextSlot(ns);
+        }
       } else {
-        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, GRID_END - dur));
-        ne = ns + dur;
+        if (target === 'start') {
+          ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, anchorEnd - DRAFT_MIN_DURATION));
+        } else if (target === 'end') {
+          ne = snapMin(clampNum(anchorEnd + deltaMin, anchorStart + DRAFT_MIN_DURATION, GRID_END));
+        } else {
+          ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, GRID_END - dur));
+          ne = ns + dur;
+        }
       }
       onChangeTimes(ns, ne);
     }
@@ -644,7 +703,7 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
 }
 
 function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClick, draft, onDraftChange }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date; onSlotClick: (tail: string, clickedMin: number, cx: number, cy: number, rect: DOMRect) => void; draft: DraftState | null; onDraftChange: (start: number, end: number) => void }) {
-  const [hover, setHover] = useState<{ tail: string; startMin: number } | null>(null);
+  const [hover, setHover] = useState<{ tail: string; startMin: number; valid: boolean } | null>(null);
   const totalH = HOURS.length * ROW_H;
   const minGridWidth = VERT_TIME_COL_W + aircraft.length * VERT_AIRCRAFT_COL_MIN_W;
   return (
@@ -689,7 +748,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClic
           {aircraft.map((ac, i) => (
             <div
               key={ac.tail}
-              style={{ flex: 1, position: 'relative', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)`, cursor: 'cell' }}
+              style={{ flex: 1, position: 'relative', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)`, cursor: !draft && hover?.tail === ac.tail && !hover.valid ? 'default' : 'cell' }}
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 onSlotClick(ac.tail, GRID_START + ((e.clientY - rect.top) / rect.height) * GRID_SPAN, e.clientX, e.clientY, rect);
@@ -697,18 +756,25 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClic
               onMouseMove={(e) => {
                 if (draft) return;
                 const rect = e.currentTarget.getBoundingClientRect();
-                const min = GRID_START + ((e.clientY - rect.top) / rect.height) * GRID_SPAN;
-                setHover({ tail: ac.tail, startMin: snapMin(clampNum(min, GRID_START, GRID_END - DEFAULT_DURATION)) });
+                const raw = GRID_START + ((e.clientY - rect.top) / rect.height) * GRID_SPAN;
+                const startMin = ac.schedulingType === 'trainer'
+                  ? snapTrainer(raw)
+                  : snapMin(clampNum(raw, GRID_START, GRID_END - REGULAR_DEFAULT_DURATION));
+                const endMin = ac.schedulingType === 'trainer'
+                  ? trainerNextSlot(startMin)
+                  : Math.min(startMin + REGULAR_DEFAULT_DURATION, GRID_END);
+                const valid = !hasOverlap(eventsByTail[ac.tail] ?? [], startMin, endMin, selectedDate);
+                setHover({ tail: ac.tail, startMin, valid });
               }}
               onMouseLeave={() => setHover(null)}
             >
               {(eventsByTail[ac.tail] ?? []).map(ev => (
                 <VertEvent key={ev.id} event={ev} selectedDate={selectedDate} />
               ))}
-              {!draft && hover?.tail === ac.tail && (
+              {!draft && hover?.tail === ac.tail && hover.valid && (
                 <HoverVertChip
                   startMin={hover.startMin}
-                  endMin={Math.min(hover.startMin + DEFAULT_DURATION, GRID_END)}
+                  endMin={ac.schedulingType === 'trainer' ? trainerNextSlot(hover.startMin) : Math.min(hover.startMin + REGULAR_DEFAULT_DURATION, GRID_END)}
                 />
               )}
               {draft?.tail === ac.tail && (
@@ -716,6 +782,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClic
                   startMin={draft.startMin}
                   endMin={draft.endMin}
                   destType={draft.destType}
+                  schedulingType={ac.schedulingType}
                   onChangeTimes={onDraftChange}
                 />
               )}
@@ -748,8 +815,15 @@ export default function SchedulePage() {
   const [cardPos, setCardPos] = useState<CardPos>({ x: 0, y: 0 });
 
   function handleSlotClick(tail: string, clickedMin: number, clickX: number, clickY: number, anchorRect: DOMRect) {
-    const startMin = snapMin(clampNum(clickedMin, GRID_START, GRID_END - DEFAULT_DURATION));
-    const endMin   = Math.min(startMin + DEFAULT_DURATION, GRID_END);
+    const ac = AIRCRAFT.find(a => a.tail === tail);
+    const isTrainer = ac?.schedulingType === 'trainer';
+    const startMin = isTrainer
+      ? snapTrainer(clickedMin)
+      : snapMin(clampNum(clickedMin, GRID_START, GRID_END - REGULAR_DEFAULT_DURATION));
+    const endMin = isTrainer
+      ? trainerNextSlot(startMin)
+      : Math.min(startMin + REGULAR_DEFAULT_DURATION, GRID_END);
+    if (hasOverlap(eventsByTail[tail] ?? [], startMin, endMin, selectedDate)) return;
     const CARD_W = 296;
     const CARD_H = 310;
     const vw = window.innerWidth;
@@ -998,6 +1072,7 @@ export default function SchedulePage() {
         <NewEventCard
           draft={draft}
           pos={cardPos}
+          schedulingType={AIRCRAFT.find(a => a.tail === draft.tail)?.schedulingType ?? 'regular'}
           onUpdate={(changes) => setDraft(d => d ? { ...d, ...changes } : d)}
           onClose={() => setDraft(null)}
           onCreate={() => setDraft(null)}

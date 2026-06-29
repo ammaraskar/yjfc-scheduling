@@ -4,6 +4,11 @@ import n885gt from '@/assets/airplanes/N885GT.jpg'
 import n98714 from '@/assets/airplanes/N98714.jpg'
 import n2247t from '@/assets/airplanes/N2247T.jpg'
 
+export type SchedulingType = 'trainer' | 'regular';
+
+// Valid block boundary times (minutes from midnight) for trainer aircraft
+export const TRAINER_SLOTS: readonly number[] = [90, 240, 330, 480, 630, 780, 930, 1080, 1230, 1380];
+
 export interface Squawk {
   id: string;
   text: string;
@@ -16,6 +21,7 @@ export interface Aircraft {
   tail: string;
   photo?: string;
   type: 'piston' | 'sim';
+  schedulingType: SchedulingType;
   makeModel: string;
   year: number;
   horsepower: number;
@@ -37,6 +43,7 @@ export const AIRCRAFT: Aircraft[] = [
     tail: 'N314GT',
     photo: n314gt,
     type: 'piston',
+    schedulingType: 'trainer',
     makeModel: 'Cessna 172P Skyhawk',
     year: 1981,
     horsepower: 180,
@@ -56,6 +63,7 @@ export const AIRCRAFT: Aircraft[] = [
     tail: 'N161GT',
     photo: n161gt,
     type: 'piston',
+    schedulingType: 'trainer',
     makeModel: 'Cessna 172P Skyhawk',
     year: 1986,
     horsepower: 180,
@@ -83,6 +91,7 @@ export const AIRCRAFT: Aircraft[] = [
     tail: 'N885GT',
     photo: n885gt,
     type: 'piston',
+    schedulingType: 'regular',
     makeModel: 'Cessna 172S Skyhawk SP',
     year: 2004,
     horsepower: 180,
@@ -110,6 +119,7 @@ export const AIRCRAFT: Aircraft[] = [
     tail: 'N98714',
     photo: n98714,
     type: 'piston',
+    schedulingType: 'trainer',
     makeModel: 'Cessna 172P Skyhawk',
     year: 1985,
     horsepower: 180,
@@ -129,6 +139,7 @@ export const AIRCRAFT: Aircraft[] = [
     tail: 'N2247T',
     photo: n2247t,
     type: 'piston',
+    schedulingType: 'regular',
     makeModel: 'Cessna 182T Skylane',
     year: 2007,
     horsepower: 230,
@@ -147,6 +158,7 @@ export const AIRCRAFT: Aircraft[] = [
   {
     tail: 'BUZZ1',
     type: 'sim',
+    schedulingType: 'regular',
     makeModel: 'Redbird TD2',
     year: 2019,
     horsepower: 0,

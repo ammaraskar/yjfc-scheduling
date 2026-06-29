@@ -5,17 +5,17 @@ import { Label } from '@/components/ui/label'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { AIRCRAFT } from '@/data/aircraft'
+import { AIRCRAFT, TRAINER_SLOTS, type SchedulingType } from '@/data/aircraft'
 import { X } from 'lucide-react'
 
 // ─── Shared types & constants ─────────────────────────────────────────────────
 
-export const DEFAULT_DURATION = 150; // 2h 30m
-const MIN_DURATION = 30;
+export const TRAINER_DEFAULT_DURATION = 150; // first trainer block: 2h 30m
+export const REGULAR_DEFAULT_DURATION = 60;  // 1 hour
 const GRID_END = 24 * 60;
 
-const TIME_SLOTS: number[] = [];
-for (let m = 0; m <= GRID_END; m += 30) TIME_SLOTS.push(m);
+const ALL_TIME_SLOTS: number[] = [];
+for (let m = 0; m <= GRID_END; m += 30) ALL_TIME_SLOTS.push(m);
 
 function minToLabel(min: number): string {
   const h = Math.floor(min / 60) % 24;
@@ -25,10 +25,9 @@ function minToLabel(min: number): string {
   return `${h12}:${String(m).padStart(2, '0')}${suffix}`;
 }
 
-function TimeSelect({ value, onChange }: { value: number; onChange: (min: number) => void }) {
+function TimeSelect({ value, onChange, slots }: { value: number; onChange: (min: number) => void; slots: readonly number[] }) {
   function handleOpenChange(open: boolean) {
     if (!open) return;
-    // Double RAF: first for portal render, second for base-ui positioning to settle
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const popup = document.querySelector('[data-slot="select-content"]') as HTMLElement | null;
       const selected = popup?.querySelector('[aria-selected="true"]') as HTMLElement | null;
@@ -42,7 +41,7 @@ function TimeSelect({ value, onChange }: { value: number; onChange: (min: number
         <span className="flex-1 text-left">{minToLabel(value)}</span>
       </SelectTrigger>
       <SelectContent hideScrollButtons alignItemWithTrigger={false}>
-        {TIME_SLOTS.map(m => (
+        {slots.map(m => (
           <SelectItem key={m} value={String(m)}>{minToLabel(m)}</SelectItem>
         ))}
       </SelectContent>
@@ -90,15 +89,17 @@ export interface CardPos {
 }
 
 export interface NewEventCardProps {
-  draft:    DraftState;
-  pos:      CardPos;
-  onUpdate: (changes: Partial<DraftState>) => void;
-  onClose:  () => void;
-  onCreate: () => void;
+  draft:          DraftState;
+  pos:            CardPos;
+  schedulingType: SchedulingType;
+  onUpdate:       (changes: Partial<DraftState>) => void;
+  onClose:        () => void;
+  onCreate:       () => void;
 }
 
-export function NewEventCard({ draft, pos, onUpdate, onClose, onCreate }: NewEventCardProps) {
+export function NewEventCard({ draft, pos, schedulingType, onUpdate, onClose, onCreate }: NewEventCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const slots = schedulingType === 'trainer' ? TRAINER_SLOTS : ALL_TIME_SLOTS;
 
   // Escape key
   useEffect(() => {
@@ -108,8 +109,19 @@ export function NewEventCard({ draft, pos, onUpdate, onClose, onCreate }: NewEve
   }, [onClose]);
 
   function handleStartChange(newStart: number) {
-    const duration = Math.max(draft.endMin - draft.startMin, MIN_DURATION);
-    onUpdate({ startMin: newStart, endMin: Math.min(newStart + duration, GRID_END) });
+    const duration = draft.endMin - draft.startMin;
+    let newEnd: number;
+    if (schedulingType === 'trainer') {
+      // snap end to nearest trainer slot after the new start
+      const validEnds = TRAINER_SLOTS.filter(s => s > newStart);
+      const target = newStart + duration;
+      newEnd = validEnds.reduce((best, s) =>
+        Math.abs(s - target) < Math.abs(best - target) ? s : best
+      , validEnds[0] ?? GRID_END);
+    } else {
+      newEnd = Math.min(newStart + Math.max(duration, REGULAR_DEFAULT_DURATION), GRID_END);
+    }
+    onUpdate({ startMin: newStart, endMin: newEnd });
   }
 
   function handleEndChange(newEnd: number) {
@@ -177,9 +189,9 @@ export function NewEventCard({ draft, pos, onUpdate, onClose, onCreate }: NewEve
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Label className="text-xs">Time</Label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <TimeSelect value={draft.startMin} onChange={handleStartChange} />
+            <TimeSelect value={draft.startMin} onChange={handleStartChange} slots={slots} />
             <span className="text-muted-foreground text-xs shrink-0 select-none">–</span>
-            <TimeSelect value={draft.endMin} onChange={handleEndChange} />
+            <TimeSelect value={draft.endMin} onChange={handleEndChange} slots={slots} />
           </div>
         </div>
 
