@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
@@ -12,6 +12,8 @@ import { SlidersHorizontal, ChevronDown, Wrench } from 'lucide-react'
 import { startOfDay, addDays, isToday, toDateParam, sundayOfWeek } from '@/lib/dateUtils'
 import { parseDestType, parseDestAirport, eventVisual, MAINT_STRIPE, OVLY_BG, formatTimeRange } from '@/lib/eventVisual'
 import { WeekGrid, weekRangeLabel, weekRangeLabelCompact } from './WeekPage'
+import { NewEventCard, DEFAULT_DURATION, type DraftState, type DestType, type CardPos, minToCompact } from '@/components/NewEventCard'
+
 
 // ─── Portrait detection ───────────────────────────────────────────────────────
 
@@ -74,6 +76,16 @@ function hourLabel(h: number): string {
 
 function toLeftPct(minutes: number): number {
   return Math.max(0, Math.min(100, (minutes - GRID_START) / GRID_SPAN * 100));
+}
+
+const DRAFT_MIN_DURATION = 30;
+
+function snapMin(min: number): number {
+  return Math.round(min / 15) * 15;
+}
+
+function clampNum(val: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, val));
 }
 
 // ─── METAR hook ──────────────────────────────────────────────────────────────
@@ -161,7 +173,7 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
   };
 
   return (
-    <div style={{
+    <div onClick={e => e.stopPropagation()} style={{
       position: 'absolute', top: 7, bottom: 7,
       left: `calc(${left}% + ${lOff}px)`, width: `calc(${width}% - ${lOff + rOff}px)`,
       background: vis.bg,
@@ -196,6 +208,105 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
   );
 }
 
+// Draft chip rendered directly in the horizontal timeline row
+function DraftHorizChip({ startMin, endMin, destType, onChangeTimes }: {
+  startMin: number; endMin: number; destType: DestType;
+  onChangeTimes: (start: number, end: number) => void;
+}) {
+  const cleanupRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => { cleanupRef.current?.(); }, []);
+
+  const left  = toLeftPct(startMin);
+  const width = toLeftPct(endMin) - left;
+  if (width < 0.3) return null;
+
+  const vis       = eventVisual(`${destType}:`, []);
+  const gripColor = vis.text === '#ffffff' ? 'rgba(255,255,255,0.65)' : 'rgba(0,53,95,0.4)';
+
+  function startDrag(target: 'start' | 'end' | 'move', e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const anchorX     = e.clientX;
+    const anchorStart = startMin;
+    const anchorEnd   = endMin;
+    const row   = (e.currentTarget as HTMLElement).closest('[data-timeline-row]');
+    const trackW = row?.getBoundingClientRect().width ?? 640;
+
+    function onMove(ev: PointerEvent) {
+      const deltaMin = (ev.clientX - anchorX) / trackW * GRID_SPAN;
+      const dur = anchorEnd - anchorStart;
+      let ns = anchorStart, ne = anchorEnd;
+      if (target === 'start') {
+        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, anchorEnd - DRAFT_MIN_DURATION));
+      } else if (target === 'end') {
+        ne = snapMin(clampNum(anchorEnd + deltaMin, anchorStart + DRAFT_MIN_DURATION, GRID_END));
+      } else {
+        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, GRID_END - dur));
+        ne = ns + dur;
+      }
+      onChangeTimes(ns, ne);
+    }
+
+    function onEnd() {
+      window.removeEventListener('pointermove',   onMove);
+      window.removeEventListener('pointerup',     onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+      cleanupRef.current = null;
+    }
+
+    document.body.style.cursor     = target === 'move' ? 'grabbing' : 'ew-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove',   onMove);
+    window.addEventListener('pointerup',     onEnd);
+    window.addEventListener('pointercancel', onEnd);
+    cleanupRef.current = onEnd;
+  }
+
+  const HANDLE_W = 18;
+  const gripBars = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, pointerEvents: 'none' }}>
+      <div style={{ width: 2, height: 12, borderRadius: 1, background: gripColor }} />
+      <div style={{ width: 2, height: 12, borderRadius: 1, background: gripColor }} />
+    </div>
+  );
+
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        position: 'absolute', top: 6, bottom: 6,
+        left: `calc(${left}% + 2px)`, width: `calc(${width}% - 4px)`,
+        background: vis.bg,
+        border: vis.dashed ? '1.5px dashed #00355f' : 'none',
+        borderRadius: 7,
+        boxShadow: '0 0 0 2px var(--card), 0 0 0 3.5px #003057, 0 2px 8px rgba(0,0,0,0.2)',
+        display: 'flex', alignItems: 'center', overflow: 'hidden',
+        cursor: 'grab', userSelect: 'none', touchAction: 'none',
+        zIndex: 20,
+      }}
+      onPointerDown={(e) => startDrag('move', e)}
+    >
+      <div
+        style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: HANDLE_W, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'ew-resize', touchAction: 'none' }}
+        onPointerDown={(e) => { e.stopPropagation(); startDrag('start', e); }}
+      >
+        {gripBars}
+      </div>
+      <div style={{ flex: 1, textAlign: 'center', fontSize: 10.5, fontWeight: 600, color: vis.text, overflow: 'hidden', whiteSpace: 'nowrap', padding: `0 ${HANDLE_W + 2}px`, pointerEvents: 'none' }}>
+        {minToCompact(startMin)} – {minToCompact(endMin)}
+      </div>
+      <div
+        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: HANDLE_W, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'ew-resize', touchAction: 'none' }}
+        onPointerDown={(e) => { e.stopPropagation(); startDrag('end', e); }}
+      >
+        {gripBars}
+      </div>
+    </div>
+  );
+}
+
 function HorizNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const left = toLeftPct(nowMin);
@@ -214,7 +325,7 @@ function HorizNowLine({ nowMin }: { nowMin: number }) {
   );
 }
 
-function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date }) {
+function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClick, draft, onDraftChange }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date; onSlotClick: (tail: string, clickedMin: number, cx: number, cy: number, rect: DOMRect) => void; draft: DraftState | null; onDraftChange: (start: number, end: number) => void }) {
   return (
     <div style={{ display: 'flex', background: 'var(--card)' }}>
       {/* Aircraft sidebar */}
@@ -261,10 +372,26 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate }: { even
           {/* Event rows */}
           <div style={{ position: 'relative', background: 'repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px calc(100%/18))' }}>
             {aircraft.map((ac, i) => (
-              <div key={ac.tail} style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div
+                key={ac.tail}
+                data-timeline-row=""
+                style={{ position: 'relative', height: 64, borderBottom: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'cell' }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onSlotClick(ac.tail, GRID_START + ((e.clientX - rect.left) / rect.width) * GRID_SPAN, e.clientX, e.clientY, rect);
+                }}
+              >
                 {(eventsByTail[ac.tail] ?? []).map(ev => (
                   <HorizEvent key={ev.id} event={ev} selectedDate={selectedDate} />
                 ))}
+                {draft?.tail === ac.tail && (
+                  <DraftHorizChip
+                    startMin={draft.startMin}
+                    endMin={draft.endMin}
+                    destType={draft.destType}
+                    onChangeTimes={onDraftChange}
+                  />
+                )}
               </div>
             ))}
             <HorizNowLine nowMin={nowMin} />
@@ -305,7 +432,7 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
   const bOff = clipsBottom ? 0 : 2;
 
   return (
-    <div style={{
+    <div onClick={e => e.stopPropagation()} style={{
       position: 'absolute', left: 3, right: 3,
       top: `calc(${topPct}% + ${tOff}px)`, height: `calc(${heightPct}% - ${tOff + bOff}px)`,
       background: vis.bg,
@@ -336,6 +463,107 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
   );
 }
 
+// Draft chip rendered directly in the vertical timeline column
+function DraftVertChip({ startMin, endMin, destType, onChangeTimes }: {
+  startMin: number; endMin: number; destType: DestType;
+  onChangeTimes: (start: number, end: number) => void;
+}) {
+  const cleanupRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => { cleanupRef.current?.(); }, []);
+
+  const visStart  = Math.max(startMin, GRID_START);
+  const visEnd    = Math.min(endMin, GRID_END);
+  const topPct    = (visStart - GRID_START) / GRID_SPAN * 100;
+  const heightPct = (visEnd - visStart) / GRID_SPAN * 100;
+  if (heightPct < 0.3) return null;
+
+  const vis       = eventVisual(`${destType}:`, []);
+  const gripColor = vis.text === '#ffffff' ? 'rgba(255,255,255,0.65)' : 'rgba(0,53,95,0.4)';
+  const colH      = HOURS.length * ROW_H; // known constant, no DOM measurement needed
+
+  const HANDLE_H = 14;
+
+  function startDrag(target: 'start' | 'end' | 'move', e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const anchorY     = e.clientY;
+    const anchorStart = startMin;
+    const anchorEnd   = endMin;
+
+    function onMove(ev: PointerEvent) {
+      const deltaMin = (ev.clientY - anchorY) / colH * GRID_SPAN;
+      const dur = anchorEnd - anchorStart;
+      let ns = anchorStart, ne = anchorEnd;
+      if (target === 'start') {
+        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, anchorEnd - DRAFT_MIN_DURATION));
+      } else if (target === 'end') {
+        ne = snapMin(clampNum(anchorEnd + deltaMin, anchorStart + DRAFT_MIN_DURATION, GRID_END));
+      } else {
+        ns = snapMin(clampNum(anchorStart + deltaMin, GRID_START, GRID_END - dur));
+        ne = ns + dur;
+      }
+      onChangeTimes(ns, ne);
+    }
+
+    function onEnd() {
+      window.removeEventListener('pointermove',   onMove);
+      window.removeEventListener('pointerup',     onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+      cleanupRef.current = null;
+    }
+
+    document.body.style.cursor     = target === 'move' ? 'grabbing' : 'ns-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove',   onMove);
+    window.addEventListener('pointerup',     onEnd);
+    window.addEventListener('pointercancel', onEnd);
+    cleanupRef.current = onEnd;
+  }
+
+  const gripBars = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none' }}>
+      <div style={{ width: 14, height: 2, borderRadius: 1, background: gripColor }} />
+      <div style={{ width: 14, height: 2, borderRadius: 1, background: gripColor }} />
+    </div>
+  );
+
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        position: 'absolute', left: 3, right: 3,
+        top: `calc(${topPct}% + 2px)`, height: `calc(${heightPct}% - 4px)`,
+        background: vis.bg,
+        border: vis.dashed ? '1.5px dashed #00355f' : 'none',
+        borderRadius: 6,
+        boxShadow: '0 0 0 2px var(--card), 0 0 0 3px #003057, 0 2px 8px rgba(0,0,0,0.15)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        cursor: 'grab', userSelect: 'none', touchAction: 'none',
+        zIndex: 20,
+      }}
+      onPointerDown={(e) => startDrag('move', e)}
+    >
+      <div
+        style={{ height: HANDLE_H, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'ns-resize', touchAction: 'none', flexShrink: 0 }}
+        onPointerDown={(e) => { e.stopPropagation(); startDrag('start', e); }}
+      >
+        {gripBars}
+      </div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 600, color: vis.text, overflow: 'hidden', whiteSpace: 'nowrap', padding: '0 4px', pointerEvents: 'none' }}>
+        {minToCompact(startMin)}–{minToCompact(endMin)}
+      </div>
+      <div
+        style={{ height: HANDLE_H, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'ns-resize', touchAction: 'none', flexShrink: 0 }}
+        onPointerDown={(e) => { e.stopPropagation(); startDrag('end', e); }}
+      >
+        {gripBars}
+      </div>
+    </div>
+  );
+}
+
 function VertNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const topPct = (nowMin - GRID_START) / GRID_SPAN * 100;
@@ -354,7 +582,7 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
   );
 }
 
-function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date }) {
+function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClick, draft, onDraftChange }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date; onSlotClick: (tail: string, clickedMin: number, cx: number, cy: number, rect: DOMRect) => void; draft: DraftState | null; onDraftChange: (start: number, end: number) => void }) {
   const totalH = HOURS.length * ROW_H;
   const minGridWidth = VERT_TIME_COL_W + aircraft.length * VERT_AIRCRAFT_COL_MIN_W;
   return (
@@ -397,10 +625,25 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate }: { events
           </div>
           {/* Aircraft columns */}
           {aircraft.map((ac, i) => (
-            <div key={ac.tail} style={{ flex: 1, position: 'relative', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)` }}>
+            <div
+              key={ac.tail}
+              style={{ flex: 1, position: 'relative', borderRight: i < aircraft.length - 1 ? '1px solid var(--border)' : 'none', background: `repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px ${ROW_H}px)`, cursor: 'cell' }}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                onSlotClick(ac.tail, GRID_START + ((e.clientY - rect.top) / rect.height) * GRID_SPAN, e.clientX, e.clientY, rect);
+              }}
+            >
               {(eventsByTail[ac.tail] ?? []).map(ev => (
                 <VertEvent key={ev.id} event={ev} selectedDate={selectedDate} />
               ))}
+              {draft?.tail === ac.tail && (
+                <DraftVertChip
+                  startMin={draft.startMin}
+                  endMin={draft.endMin}
+                  destType={draft.destType}
+                  onChangeTimes={onDraftChange}
+                />
+              )}
             </div>
           ))}
           <VertNowLine nowMin={nowMin} />
@@ -424,7 +667,53 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const nowMin = useNowMinutes();
-  const metar = useMetar('KPDK');
+  const metar  = useMetar('KPDK');
+
+  const [draft, setDraft]     = useState<DraftState | null>(null);
+  const [cardPos, setCardPos] = useState<CardPos>({ x: 0, y: 0 });
+
+  function handleSlotClick(tail: string, clickedMin: number, clickX: number, clickY: number, anchorRect: DOMRect) {
+    const startMin = snapMin(clampNum(clickedMin, GRID_START, GRID_END - DEFAULT_DURATION));
+    const endMin   = Math.min(startMin + DEFAULT_DURATION, GRID_END);
+    const CARD_W = 296;
+    const CARD_H = 310;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    setDraft({ tail, startMin, endMin, destType: 'Rental', notes: '' });
+
+    if (anchorRect.width > anchorRect.height) {
+      // Horizontal row: card below the row, horizontally centred on click
+      const y = Math.max(72, Math.min(anchorRect.bottom + 8, vh - CARD_H - 8));
+      const x = Math.max(8, Math.min(clickX - CARD_W / 2, vw - CARD_W - 8));
+      setCardPos({ x, y });
+    } else if (vw >= 600) {
+      // Wide screen vertical column: card to the right (or left) of column
+      let x = anchorRect.right + 8;
+      if (x + CARD_W > vw - 8) x = Math.max(8, anchorRect.left - CARD_W - 8);
+      const y = Math.max(72, Math.min(clickY - CARD_H / 3, vh - CARD_H - 8));
+      setCardPos({ x, y });
+    } else {
+      // Narrow screen vertical view: compute chip screen coords, place card above
+      // or below whichever side has more room, centred in the viewport.
+      const chipTopPx    = anchorRect.top + (startMin - GRID_START) / GRID_SPAN * anchorRect.height;
+      const chipBottomPx = anchorRect.top + (endMin   - GRID_START) / GRID_SPAN * anchorRect.height;
+      const roomAbove = chipTopPx - 72;          // space between toolbar and chip top
+      const roomBelow = vh - chipBottomPx - 8;   // space between chip bottom and screen bottom
+      let y: number;
+      if (roomAbove >= CARD_H || roomAbove >= roomBelow) {
+        y = Math.max(72, chipTopPx - CARD_H - 8);
+      } else {
+        y = Math.min(chipBottomPx + 8, vh - CARD_H - 8);
+      }
+      const x = Math.max(8, Math.min((vw - CARD_W) / 2, vw - CARD_W - 8));
+      setCardPos({ x, y });
+    }
+  }
+
+  function handleDraftChange(startMin: number, endMin: number) {
+    setDraft(d => d ? { ...d, startMin, endMin } : d);
+  }
 
   const weekStart = sundayOfWeek(selectedDate);
   const days      = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -609,8 +898,8 @@ export default function SchedulePage() {
               />
             )
             : portrait
-              ? <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
-              : <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} />
+              ? <VerticalView   eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} onSlotClick={handleSlotClick} draft={draft} onDraftChange={handleDraftChange}/>
+              : <HorizontalView eventsByTail={eventsByTail} nowMin={today ? nowMin : -1} aircraft={visibleAircraft} selectedDate={selectedDate} onSlotClick={handleSlotClick} draft={draft} onDraftChange={handleDraftChange}/>
         )}
       </div>
 
@@ -629,6 +918,15 @@ export default function SchedulePage() {
             </>
           )}
         </div>
+      )}
+      {draft && (
+        <NewEventCard
+          draft={draft}
+          pos={cardPos}
+          onUpdate={(changes) => setDraft(d => d ? { ...d, ...changes } : d)}
+          onClose={() => setDraft(null)}
+          onCreate={() => setDraft(null)}
+        />
       )}
     </div>
   );
