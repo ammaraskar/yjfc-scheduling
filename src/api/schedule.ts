@@ -1,6 +1,10 @@
 import { apiClient } from './client';
 import type { ApiFetch } from './client';
 
+export class SessionExpiredError extends Error {
+  constructor() { super('Session invalid or expired'); this.name = 'SessionExpiredError'; }
+}
+
 export const EventClass = {
   Maint:   'maint',
   Predone: 'predone',
@@ -87,5 +91,7 @@ export async function getSchedule(
   const res = await fetch(path);
   if (!res.ok) throw new Error(`getSchedule failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((data as any)?.rtn_data === 'Session invalid or expired') throw new SessionExpiredError();
   return (data as unknown[]).map(mapEvent);
 }

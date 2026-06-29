@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { Link } from 'wouter'
 import TopBar from '@/components/TopBar'
-import { getSchedule, EventClass, type ScheduleEvent, fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor, type MetarResponse, parseMaintDescription } from '@/api'
+import { getSchedule, EventClass, SessionExpiredError, type ScheduleEvent, fetchMetar, displayId, formatWind, formatVisib, formatClouds, formatUpdated, fltCatColor, type MetarResponse, parseMaintDescription } from '@/api'
 import { eventMinutesForDay, liveStatus, statusDotColor } from '@/lib/liveStatus'
 import { useAuth } from '@/auth'
 import { AIRCRAFT } from '@/data/aircraft'
@@ -798,7 +798,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClic
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
-  const { session } = useAuth();
+  const { session, logout } = useAuth();
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
   const [viewMode, setViewMode]         = useState<'day' | 'week'>('day');
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -878,7 +878,10 @@ export default function SchedulePage() {
     const end   = viewMode === 'week' ? addDays(weekStart, 7) : addDays(selectedDate, 1);
     getSchedule(session.userid, session.session, start, end)
       .then(data => { setEvents(data); setLoading(false); })
-      .catch(err  => { setError(String(err)); setLoading(false); });
+      .catch(err  => {
+        if (err instanceof SessionExpiredError) { logout(); return; }
+        console.log(err); setError(String(err)); setLoading(false);
+      });
   // weekStart/selectedDate are stable for a given fetchKey
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchKey, session]);

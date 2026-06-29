@@ -15,7 +15,7 @@ describe('login', () => {
       expect.stringContaining('%2Flogin.asp'),
       expect.objectContaining({
         method: 'POST',
-        body: 'USERID=aaskar&DATA=secret&CMD=LOGIN',
+        body: 'USERID=aaskar&DATA=secret&CMD=LOGIN&remember=Y',
       }),
     );
   });

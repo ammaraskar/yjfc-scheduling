@@ -9,7 +9,7 @@ export async function login(username: string, password: string): Promise<LoginRe
   const res = await apiClient('/login.asp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ USERID: username, DATA: password, CMD: 'LOGIN' }).toString(),
+    body: new URLSearchParams({ USERID: username, DATA: password, CMD: 'LOGIN', remember: 'Y' }).toString(),
   });
 
   const location = res.headers.get('x-final-location');

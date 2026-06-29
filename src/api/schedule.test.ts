@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getSchedule, EventClass } from './schedule';
+import { getSchedule, EventClass, SessionExpiredError } from './schedule';
 
 const RAW_EVENTS = [
   {
@@ -140,6 +140,13 @@ describe('getSchedule', () => {
     await expect(
       getSchedule('148772', 'S', new Date(2026, 5, 27), new Date(2026, 5, 28), 0, fetch),
     ).rejects.toThrow('getSchedule failed: 401');
+  });
+
+  it('throws SessionExpiredError when rtn_data indicates session expired', async () => {
+    const fetch = stubFetch({ rtn_data: 'Session invalid or expired' });
+    await expect(
+      getSchedule('148772', 'S', new Date(2026, 5, 27), new Date(2026, 5, 28), 0, fetch),
+    ).rejects.toBeInstanceOf(SessionExpiredError);
   });
 
   it('parses multiple space-separated classNames', async () => {
