@@ -81,7 +81,7 @@ function toLeftPct(minutes: number): number {
 const DRAFT_MIN_DURATION = 30;
 
 function snapMin(min: number): number {
-  return Math.round(min / 15) * 15;
+  return Math.round(min / 30) * 30;
 }
 
 function clampNum(val: number, lo: number, hi: number): number {

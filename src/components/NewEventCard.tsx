@@ -14,6 +14,42 @@ export const DEFAULT_DURATION = 150; // 2h 30m
 const MIN_DURATION = 30;
 const GRID_END = 24 * 60;
 
+const TIME_SLOTS: number[] = [];
+for (let m = 0; m <= GRID_END; m += 30) TIME_SLOTS.push(m);
+
+function minToLabel(min: number): string {
+  const h = Math.floor(min / 60) % 24;
+  const m = min % 60;
+  const suffix = h < 12 ? 'am' : 'pm';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')}${suffix}`;
+}
+
+function TimeSelect({ value, onChange }: { value: number; onChange: (min: number) => void }) {
+  function handleOpenChange(open: boolean) {
+    if (!open) return;
+    // Double RAF: first for portal render, second for base-ui positioning to settle
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const popup = document.querySelector('[data-slot="select-content"]') as HTMLElement | null;
+      const selected = popup?.querySelector('[aria-selected="true"]') as HTMLElement | null;
+      if (popup && selected) popup.scrollTop = Math.max(0, selected.offsetTop - 8);
+    }));
+  }
+
+  return (
+    <Select value={String(value)} onValueChange={(v) => { if (v !== null) onChange(Number(v)); }} onOpenChange={handleOpenChange}>
+      <SelectTrigger size="sm" className="flex-1 min-w-0 tabular-nums">
+        <span className="flex-1 text-left">{minToLabel(value)}</span>
+      </SelectTrigger>
+      <SelectContent hideScrollButtons alignItemWithTrigger={false}>
+        {TIME_SLOTS.map(m => (
+          <SelectItem key={m} value={String(m)}>{minToLabel(m)}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export type DestType = 'Rental' | 'Training' | 'Standby';
 
 export interface DraftState {
@@ -71,14 +107,12 @@ export function NewEventCard({ draft, pos, onUpdate, onClose, onCreate }: NewEve
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  function handleStartChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newStart = timeStrToMin(e.target.value);
+  function handleStartChange(newStart: number) {
     const duration = Math.max(draft.endMin - draft.startMin, MIN_DURATION);
     onUpdate({ startMin: newStart, endMin: Math.min(newStart + duration, GRID_END) });
   }
 
-  function handleEndChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newEnd = timeStrToMin(e.target.value);
+  function handleEndChange(newEnd: number) {
     if (newEnd > draft.startMin) onUpdate({ endMin: newEnd });
   }
 
@@ -95,7 +129,7 @@ export function NewEventCard({ draft, pos, onUpdate, onClose, onCreate }: NewEve
         position: 'fixed',
         left: pos.x,
         top: pos.y,
-        zIndex: 60,
+        zIndex: 40,
         width: 288,
         background: 'var(--card)',
         border: '1px solid var(--border)',
@@ -143,21 +177,9 @@ export function NewEventCard({ draft, pos, onUpdate, onClose, onCreate }: NewEve
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Label className="text-xs">Time</Label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Input
-              type="time"
-              value={minToTimeStr(draft.startMin)}
-              onChange={handleStartChange}
-              className="flex-1 min-w-0 tabular-nums h-7 text-xs"
-              aria-label="Start time"
-            />
+            <TimeSelect value={draft.startMin} onChange={handleStartChange} />
             <span className="text-muted-foreground text-xs shrink-0 select-none">–</span>
-            <Input
-              type="time"
-              value={minToTimeStr(draft.endMin)}
-              onChange={handleEndChange}
-              className="flex-1 min-w-0 tabular-nums h-7 text-xs"
-              aria-label="End time"
-            />
+            <TimeSelect value={draft.endMin} onChange={handleEndChange} />
           </div>
         </div>
 
