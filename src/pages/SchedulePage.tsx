@@ -307,6 +307,27 @@ function DraftHorizChip({ startMin, endMin, destType, onChangeTimes }: {
   );
 }
 
+function HoverHorizChip({ startMin, endMin }: { startMin: number; endMin: number }) {
+  const left  = toLeftPct(startMin);
+  const width = toLeftPct(endMin) - left;
+  if (width < 0.3) return null;
+  return (
+    <div style={{
+      position: 'absolute', top: 6, bottom: 6,
+      left: `calc(${left}% + 2px)`, width: `calc(${width}% - 4px)`,
+      background: 'rgba(0,53,95,0.28)',
+      borderRadius: 7,
+      pointerEvents: 'none',
+      zIndex: 5,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    }}>
+      <span style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>
+        {minToCompact(startMin)} – {minToCompact(endMin)}
+      </span>
+    </div>
+  );
+}
+
 function HorizNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const left = toLeftPct(nowMin);
@@ -326,6 +347,7 @@ function HorizNowLine({ nowMin }: { nowMin: number }) {
 }
 
 function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClick, draft, onDraftChange }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date; onSlotClick: (tail: string, clickedMin: number, cx: number, cy: number, rect: DOMRect) => void; draft: DraftState | null; onDraftChange: (start: number, end: number) => void }) {
+  const [hover, setHover] = useState<{ tail: string; startMin: number } | null>(null);
   return (
     <div style={{ display: 'flex', background: 'var(--card)' }}>
       {/* Aircraft sidebar */}
@@ -380,10 +402,23 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotCl
                   const rect = e.currentTarget.getBoundingClientRect();
                   onSlotClick(ac.tail, GRID_START + ((e.clientX - rect.left) / rect.width) * GRID_SPAN, e.clientX, e.clientY, rect);
                 }}
+                onMouseMove={(e) => {
+                  if (draft) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const min = GRID_START + ((e.clientX - rect.left) / rect.width) * GRID_SPAN;
+                  setHover({ tail: ac.tail, startMin: snapMin(clampNum(min, GRID_START, GRID_END - DEFAULT_DURATION)) });
+                }}
+                onMouseLeave={() => setHover(null)}
               >
                 {(eventsByTail[ac.tail] ?? []).map(ev => (
                   <HorizEvent key={ev.id} event={ev} selectedDate={selectedDate} />
                 ))}
+                {!draft && hover?.tail === ac.tail && (
+                  <HoverHorizChip
+                    startMin={hover.startMin}
+                    endMin={Math.min(hover.startMin + DEFAULT_DURATION, GRID_END)}
+                  />
+                )}
                 {draft?.tail === ac.tail && (
                   <DraftHorizChip
                     startMin={draft.startMin}
@@ -564,6 +599,32 @@ function DraftVertChip({ startMin, endMin, destType, onChangeTimes }: {
   );
 }
 
+function HoverVertChip({ startMin, endMin }: { startMin: number; endMin: number }) {
+  const visStart  = Math.max(startMin, GRID_START);
+  const visEnd    = Math.min(endMin, GRID_END);
+  const topPct    = (visStart - GRID_START) / GRID_SPAN * 100;
+  const heightPct = (visEnd - visStart) / GRID_SPAN * 100;
+  if (heightPct < 0.3) return null;
+  return (
+    <div style={{
+      position: 'absolute', left: 3, right: 3,
+      top: `calc(${topPct}% + 2px)`, height: `calc(${heightPct}% - 4px)`,
+      background: 'rgba(0,53,95,0.28)',
+      borderRadius: 6,
+      pointerEvents: 'none',
+      zIndex: 5,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    }}>
+      <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>
+        {minToCompact(startMin)}
+      </span>
+      <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>
+        {minToCompact(endMin)}
+      </span>
+    </div>
+  );
+}
+
 function VertNowLine({ nowMin }: { nowMin: number }) {
   if (nowMin < GRID_START || nowMin > GRID_END) return null;
   const topPct = (nowMin - GRID_START) / GRID_SPAN * 100;
@@ -583,6 +644,7 @@ function VertNowLine({ nowMin }: { nowMin: number }) {
 }
 
 function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClick, draft, onDraftChange }: { eventsByTail: Record<string, ScheduleEvent[]>; nowMin: number; aircraft: typeof AIRCRAFT; selectedDate: Date; onSlotClick: (tail: string, clickedMin: number, cx: number, cy: number, rect: DOMRect) => void; draft: DraftState | null; onDraftChange: (start: number, end: number) => void }) {
+  const [hover, setHover] = useState<{ tail: string; startMin: number } | null>(null);
   const totalH = HOURS.length * ROW_H;
   const minGridWidth = VERT_TIME_COL_W + aircraft.length * VERT_AIRCRAFT_COL_MIN_W;
   return (
@@ -632,10 +694,23 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClic
                 const rect = e.currentTarget.getBoundingClientRect();
                 onSlotClick(ac.tail, GRID_START + ((e.clientY - rect.top) / rect.height) * GRID_SPAN, e.clientX, e.clientY, rect);
               }}
+              onMouseMove={(e) => {
+                if (draft) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const min = GRID_START + ((e.clientY - rect.top) / rect.height) * GRID_SPAN;
+                setHover({ tail: ac.tail, startMin: snapMin(clampNum(min, GRID_START, GRID_END - DEFAULT_DURATION)) });
+              }}
+              onMouseLeave={() => setHover(null)}
             >
               {(eventsByTail[ac.tail] ?? []).map(ev => (
                 <VertEvent key={ev.id} event={ev} selectedDate={selectedDate} />
               ))}
+              {!draft && hover?.tail === ac.tail && (
+                <HoverVertChip
+                  startMin={hover.startMin}
+                  endMin={Math.min(hover.startMin + DEFAULT_DURATION, GRID_END)}
+                />
+              )}
               {draft?.tail === ac.tail && (
                 <DraftVertChip
                   startMin={draft.startMin}
