@@ -1076,6 +1076,7 @@ export default function SchedulePage() {
           draft={draft}
           pos={cardPos}
           schedulingType={AIRCRAFT.find(a => a.tail === draft.tail)?.schedulingType ?? 'regular'}
+          hasConflict={hasOverlap(eventsByTail[draft.tail] ?? [], draft.startMin, draft.endMin, selectedDate)}
           onUpdate={(changes) => setDraft(d => d ? { ...d, ...changes } : d)}
           onClose={() => setDraft(null)}
           onCreate={() => setDraft(null)}

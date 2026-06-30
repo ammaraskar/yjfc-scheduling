@@ -92,12 +92,13 @@ export interface NewEventCardProps {
   draft:          DraftState;
   pos:            CardPos;
   schedulingType: SchedulingType;
+  hasConflict:    boolean;
   onUpdate:       (changes: Partial<DraftState>) => void;
   onClose:        () => void;
   onCreate:       () => void;
 }
 
-export function NewEventCard({ draft, pos, schedulingType, onUpdate, onClose, onCreate }: NewEventCardProps) {
+export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate, onClose, onCreate }: NewEventCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const slots = schedulingType === 'trainer' ? TRAINER_SLOTS : ALL_TIME_SLOTS;
 
@@ -226,10 +227,17 @@ export function NewEventCard({ draft, pos, schedulingType, onUpdate, onClose, on
         </div>
       </div>
 
+      {/* Conflict warning */}
+      {hasConflict && (
+        <div style={{ marginTop: 10, padding: '7px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 7, fontSize: 12, color: '#991b1b' }}>
+          This time overlaps with an existing reservation.
+        </div>
+      )}
+
       {/* Buttons */}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
         <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-        <Button size="sm" style={{ background: '#003057', color: '#fff' }} onClick={onCreate}>
+        <Button size="sm" style={{ background: '#003057', color: '#fff' }} onClick={onCreate} disabled={hasConflict}>
           Create
         </Button>
       </div>
