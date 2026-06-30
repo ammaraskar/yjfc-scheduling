@@ -13,7 +13,7 @@ export function parseDestType(dest: string): { type: string; sub: string } {
 
 export function parseDestAirport(dest: string): string | null {
   const { type, sub } = parseDestType(dest);
-  if (type === 'Training' || type === 'StudentSolo') return null;
+  if (type === 'Training' || type === 'Student Solo') return null;
   const token = sub.split(/[;\s]/)[0].toUpperCase();
   return /^[A-Z0-9]{3,4}$/.test(token) ? token : null;
 }
@@ -31,7 +31,7 @@ export function eventVisual(dest: string, classNames: EventClass[]): EventVisual
   const { type } = parseDestType(dest);
   switch (type) {
     case 'Training':
-    case 'StudentSolo':
+    case 'Student Solo':
       return { bg: 'var(--club-gold)', text: '#2a2200', subText: 'rgba(42,34,0,0.7)' };
     case 'Local':
     case 'CrossCountry':

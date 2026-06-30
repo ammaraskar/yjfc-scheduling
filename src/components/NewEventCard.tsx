@@ -49,7 +49,7 @@ function TimeSelect({ value, onChange, slots }: { value: number; onChange: (min:
   );
 }
 
-export type DestType = 'Local' | 'Training' | 'CrossCountry' | 'StudentSolo';
+export type DestType = 'Local' | 'Training' | 'CrossCountry' | 'Student Solo';
 
 export interface DraftState {
   tail:      string;
@@ -129,7 +129,7 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
     if (newEnd > draft.startMin) onUpdate({ endMin: newEnd });
   }
 
-  const isTrainingType = draft.destType === 'Training' || draft.destType === 'StudentSolo';
+  const isTrainingType = draft.destType === 'Training' || draft.destType === 'Student Solo';
   const notesLabel = isTrainingType ? 'CFI Name' : draft.destType === 'CrossCountry' ? 'Destination' : 'Notes';
   const notesPlaceholder = isTrainingType ? 'Instructor name' : draft.destType === 'CrossCountry' ? 'e.g. KATL' : 'Optional comment';
   const notesRequired = isTrainingType || draft.destType === 'CrossCountry';
@@ -201,11 +201,11 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
             onValueChange={(v) => onUpdate({ destType: v as DestType })}
           >
             <SelectTrigger id="ec-type" className="w-full" size="sm">
-              <span className="flex-1 text-left">{{ Training: 'Training', StudentSolo: 'Student Solo', Local: 'Local', CrossCountry: 'Cross Country' }[draft.destType]}</span>
+              <span className="flex-1 text-left">{{ Training: 'Training', 'Student Solo': 'Student Solo', Local: 'Local', CrossCountry: 'Cross Country' }[draft.destType]}</span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Training">Training</SelectItem>
-              <SelectItem value="StudentSolo">Student Solo</SelectItem>
+              <SelectItem value="Student Solo">Student Solo</SelectItem>
               <SelectItem value="Local">Local</SelectItem>
               <SelectItem value="CrossCountry">Cross Country</SelectItem>
             </SelectContent>
