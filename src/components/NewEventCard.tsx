@@ -198,7 +198,12 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
           <Label htmlFor="ec-type" className="text-xs">Type</Label>
           <Select
             value={draft.destType}
-            onValueChange={(v) => onUpdate({ destType: v as DestType })}
+            onValueChange={(v) => {
+              const newType = v as DestType;
+              const wasTraining = draft.destType === 'Training' || draft.destType === 'Student Solo';
+              const isNowNonTraining = newType === 'Local' || newType === 'CrossCountry';
+              onUpdate({ destType: newType, ...(wasTraining && isNowNonTraining ? { notes: '' } : {}) });
+            }}
           >
             <SelectTrigger id="ec-type" className="w-full" size="sm">
               <span className="flex-1 text-left">{{ Training: 'Training', 'Student Solo': 'Student Solo', Local: 'Local', CrossCountry: 'Cross Country' }[draft.destType]}</span>
