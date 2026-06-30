@@ -1,12 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { TRAINER_SLOTS, type SchedulingType } from '@/data/aircraft'
-import { X } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
+import { startOfDay } from '@/lib/dateUtils'
 
 // ─── Shared types & constants ─────────────────────────────────────────────────
 
@@ -57,6 +60,7 @@ export interface DraftState {
   endMin:    number;
   destType:  DestType;
   notes:     string;
+  endDate:   Date | null; // null = same day as selectedDate; set for multi-day XC
 }
 
 // ─── Time helpers (used by both the card and SchedulePage chip components) ───
@@ -93,14 +97,23 @@ export interface NewEventCardProps {
   pos:            CardPos;
   schedulingType: SchedulingType;
   hasConflict:    boolean;
+  selectedDate:   Date;
   onUpdate:       (changes: Partial<DraftState>) => void;
   onClose:        () => void;
   onCreate:       () => void;
 }
 
-export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate, onClose, onCreate }: NewEventCardProps) {
+export function NewEventCard({ draft, pos, schedulingType, hasConflict, selectedDate, onUpdate, onClose, onCreate }: NewEventCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const slots = schedulingType === 'trainer' ? TRAINER_SLOTS : ALL_TIME_SLOTS;
+
+  const effectiveEndDate = draft.endDate ?? selectedDate;
+  const isMultiDay = draft.endDate !== null && draft.endDate.getTime() > selectedDate.getTime();
+
+  function formatReturnDate(d: Date): string {
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
 
   // Escape key
   useEffect(() => {
@@ -126,7 +139,7 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
   }
 
   function handleEndChange(newEnd: number) {
-    if (newEnd > draft.startMin) onUpdate({ endMin: newEnd });
+    if (isMultiDay || newEnd > draft.startMin) onUpdate({ endMin: newEnd });
   }
 
   const isTrainingType = draft.destType === 'Training' || draft.destType === 'Student Solo';
@@ -183,15 +196,60 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{draft.tail}</span>
         </div>
 
-        {/* Time */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Label className="text-xs">Time</Label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <TimeSelect value={draft.startMin} onChange={handleStartChange} slots={slots} />
-            <span className="text-muted-foreground text-xs shrink-0 select-none">–</span>
-            <TimeSelect value={draft.endMin} onChange={handleEndChange} slots={slots} />
+        {/* Time — split into depart/return rows for XC, combined row otherwise */}
+        {draft.destType === 'CrossCountry' ? (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Label className="text-xs">Depart</Label>
+              <TimeSelect value={draft.startMin} onChange={handleStartChange} slots={slots} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Label className="text-xs">Return</Label>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      height: 28, padding: '0 8px', gap: 4,
+                      background: 'var(--background)', border: '1px solid var(--border)',
+                      borderRadius: 6, cursor: 'pointer',
+                      fontSize: 12, fontWeight: isMultiDay ? 600 : 400,
+                      color: isMultiDay ? 'var(--foreground)' : 'var(--muted-foreground)',
+                    }}
+                  >
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {formatReturnDate(effectiveEndDate)}
+                    </span>
+                    <ChevronDown size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
+                  </PopoverTrigger>
+                  <PopoverContent align="start" style={{ width: 'auto', padding: 0 }} onClick={e => e.stopPropagation()}>
+                    <Calendar
+                      mode="single"
+                      selected={effectiveEndDate}
+                      onSelect={d => {
+                        if (!d) return;
+                        const day = startOfDay(d);
+                        onUpdate({ endDate: day.getTime() === selectedDate.getTime() ? null : day });
+                        setDatePickerOpen(false);
+                      }}
+                      disabled={d => startOfDay(d).getTime() < selectedDate.getTime()}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <TimeSelect value={draft.endMin} onChange={handleEndChange} slots={slots} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Label className="text-xs">Time</Label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <TimeSelect value={draft.startMin} onChange={handleStartChange} slots={slots} />
+              <span className="text-muted-foreground text-xs shrink-0 select-none">–</span>
+              <TimeSelect value={draft.endMin} onChange={handleEndChange} slots={slots} />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Type */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -202,7 +260,11 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
               const newType = v as DestType;
               const wasTraining = draft.destType === 'Training' || draft.destType === 'Student Solo';
               const isNowNonTraining = newType === 'Local' || newType === 'CrossCountry';
-              onUpdate({ destType: newType, ...(wasTraining && isNowNonTraining ? { notes: '' } : {}) });
+              onUpdate({
+                destType: newType,
+                ...(wasTraining && isNowNonTraining ? { notes: '' } : {}),
+                ...(draft.destType === 'CrossCountry' && newType !== 'CrossCountry' ? { endDate: null } : {}),
+              });
             }}
           >
             <SelectTrigger id="ec-type" className="w-full" size="sm">

@@ -111,6 +111,24 @@ function hasOverlap(events: ScheduleEvent[], startMin: number, endMin: number, d
   });
 }
 
+function hasMultiDayConflict(
+  draft: { tail: string; startMin: number; endMin: number; endDate: Date },
+  events: ScheduleEvent[],
+  selectedDate: Date,
+): boolean {
+  const tailEvents = events.filter(ev => ev.tail === draft.tail);
+  let day = selectedDate;
+  while (day.getTime() <= draft.endDate.getTime()) {
+    const isFirst = day.getTime() === selectedDate.getTime();
+    const isLast  = day.getTime() === draft.endDate.getTime();
+    const start = isFirst ? draft.startMin : 0;
+    const end   = isLast  ? draft.endMin   : GRID_END;
+    if (hasOverlap(tailEvents, start, end, day)) return true;
+    day = addDays(day, 1);
+  }
+  return false;
+}
+
 // ─── METAR hook ──────────────────────────────────────────────────────────────
 
 const METAR_REFRESH_MS = 5 * 60 * 1000;
@@ -466,7 +484,7 @@ function HorizontalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotCl
                 {draft?.tail === ac.tail && (
                   <DraftHorizChip
                     startMin={draft.startMin}
-                    endMin={draft.endMin}
+                    endMin={draft.endDate && draft.endDate.getTime() > selectedDate.getTime() ? GRID_END : draft.endMin}
                     destType={draft.destType}
                     schedulingType={ac.schedulingType}
                     onChangeTimes={onDraftChange}
@@ -780,7 +798,7 @@ function VerticalView({ eventsByTail, nowMin, aircraft, selectedDate, onSlotClic
               {draft?.tail === ac.tail && (
                 <DraftVertChip
                   startMin={draft.startMin}
-                  endMin={draft.endMin}
+                  endMin={draft.endDate && draft.endDate.getTime() > selectedDate.getTime() ? GRID_END : draft.endMin}
                   destType={draft.destType}
                   schedulingType={ac.schedulingType}
                   onChangeTimes={onDraftChange}
@@ -813,6 +831,19 @@ export default function SchedulePage() {
 
   const [draft, setDraft]     = useState<DraftState | null>(null);
   const [cardPos, setCardPos] = useState<CardPos>({ x: 0, y: 0 });
+  const [xcConflictEvents, setXcConflictEvents] = useState<ScheduleEvent[]>([]);
+
+  // Fetch events across the full date range when a multi-day XC draft is active
+  const xcEndTs = draft?.destType === 'CrossCountry' && draft.endDate && draft.endDate.getTime() > selectedDate.getTime()
+    ? draft.endDate.getTime() : 0;
+  useEffect(() => {
+    if (!xcEndTs || !session || !draft?.tail) { setXcConflictEvents([]); return; }
+    getSchedule(session.userid, session.session, selectedDate, addDays(new Date(xcEndTs), 1))
+      .then(setXcConflictEvents)
+      .catch(() => setXcConflictEvents([]));
+  // xcEndTs encodes endDate; selectedDate and draft.tail cover the rest
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [xcEndTs, selectedDate, draft?.tail, session]);
 
   function handleSlotClick(tail: string, clickedMin: number, clickX: number, clickY: number, anchorRect: DOMRect) {
     const ac = AIRCRAFT.find(a => a.tail === tail);
@@ -829,7 +860,7 @@ export default function SchedulePage() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    setDraft({ tail, startMin, endMin, destType: isTrainer ? 'Training' : 'Local', notes: '' });
+    setDraft({ tail, startMin, endMin, destType: isTrainer ? 'Training' : 'Local', notes: '', endDate: null });
 
     if (anchorRect.width > anchorRect.height) {
       // Horizontal row: card below the row, horizontally centred on click
@@ -861,7 +892,12 @@ export default function SchedulePage() {
   }
 
   function handleDraftChange(startMin: number, endMin: number) {
-    setDraft(d => d ? { ...d, startMin, endMin } : d);
+    setDraft(d => {
+      if (!d) return d;
+      // Multi-day XC: endMin is the return time on a future day — chip drags must not overwrite it
+      const isMultiDay = d.endDate !== null && d.endDate.getTime() > selectedDate.getTime();
+      return { ...d, startMin, endMin: isMultiDay ? d.endMin : endMin };
+    });
   }
 
   const weekStart = sundayOfWeek(selectedDate);
@@ -1076,7 +1112,12 @@ export default function SchedulePage() {
           draft={draft}
           pos={cardPos}
           schedulingType={AIRCRAFT.find(a => a.tail === draft.tail)?.schedulingType ?? 'regular'}
-          hasConflict={hasOverlap(eventsByTail[draft.tail] ?? [], draft.startMin, draft.endMin, selectedDate)}
+          hasConflict={
+            draft.endDate && draft.endDate.getTime() > selectedDate.getTime()
+              ? hasMultiDayConflict({ ...draft, endDate: draft.endDate }, xcConflictEvents, selectedDate)
+              : hasOverlap(eventsByTail[draft.tail] ?? [], draft.startMin, draft.endMin, selectedDate)
+          }
+          selectedDate={selectedDate}
           onUpdate={(changes) => setDraft(d => d ? { ...d, ...changes } : d)}
           onClose={() => setDraft(null)}
           onCreate={() => setDraft(null)}
