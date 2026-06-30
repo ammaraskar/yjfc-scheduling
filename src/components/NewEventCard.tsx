@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { AIRCRAFT, TRAINER_SLOTS, type SchedulingType } from '@/data/aircraft'
+import { TRAINER_SLOTS, type SchedulingType } from '@/data/aircraft'
 import { X } from 'lucide-react'
 
 // ─── Shared types & constants ─────────────────────────────────────────────────
@@ -49,7 +49,7 @@ function TimeSelect({ value, onChange, slots }: { value: number; onChange: (min:
   );
 }
 
-export type DestType = 'Rental' | 'Training' | 'Standby';
+export type DestType = 'Local' | 'Training' | 'CrossCountry' | 'StudentSolo';
 
 export interface DraftState {
   tail:      string;
@@ -129,10 +129,18 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
     if (newEnd > draft.startMin) onUpdate({ endMin: newEnd });
   }
 
-  const notesPlaceholder =
-    draft.destType === 'Training' ? 'Instructor name'
-    : draft.destType === 'Standby' ? 'Optional note'
-    : 'Destination, e.g. KATL';
+  const isTrainingType = draft.destType === 'Training' || draft.destType === 'StudentSolo';
+  const notesLabel = isTrainingType ? 'CFI Name' : draft.destType === 'CrossCountry' ? 'Destination' : 'Notes';
+  const notesPlaceholder = isTrainingType ? 'Instructor name' : draft.destType === 'CrossCountry' ? 'e.g. KATL' : 'Optional comment';
+  const notesRequired = isTrainingType || draft.destType === 'CrossCountry';
+
+  useEffect(() => {
+    if (isTrainingType && !draft.notes) {
+      const saved = localStorage.getItem('yjfc_cfi');
+      if (saved) onUpdate({ notes: saved });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.destType]);
 
   return (
     <div
@@ -170,20 +178,9 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
 
         {/* Aircraft */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Label htmlFor="ec-aircraft" className="text-xs">Aircraft</Label>
-          <Select value={draft.tail} onValueChange={(v) => { if (v !== null) onUpdate({ tail: v }); }}>
-            <SelectTrigger id="ec-aircraft" className="w-full" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AIRCRAFT.map(ac => (
-                <SelectItem key={ac.tail} value={ac.tail}>
-                  {ac.tail} – {ac.makeModel.split(' ').slice(1, 3).join(' ')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Label className="text-xs">Aircraft</Label>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{draft.tail}</span>
         </div>
 
         {/* Time */}
@@ -204,24 +201,28 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, onUpdate
             onValueChange={(v) => onUpdate({ destType: v as DestType })}
           >
             <SelectTrigger id="ec-type" className="w-full" size="sm">
-              <SelectValue />
+              <span className="flex-1 text-left">{{ Training: 'Training', StudentSolo: 'Student Solo', Local: 'Local', CrossCountry: 'Cross Country' }[draft.destType]}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Rental">Rental</SelectItem>
               <SelectItem value="Training">Training</SelectItem>
-              <SelectItem value="Standby">Standby</SelectItem>
+              <SelectItem value="StudentSolo">Student Solo</SelectItem>
+              <SelectItem value="Local">Local</SelectItem>
+              <SelectItem value="CrossCountry">Cross Country</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Notes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Label htmlFor="ec-notes" className="text-xs">Notes</Label>
+          <Label htmlFor="ec-notes" className="text-xs">{notesLabel}{notesRequired && <span style={{ color: '#dc2626', marginLeft: 2 }}>*</span>}</Label>
           <Input
             id="ec-notes"
             placeholder={notesPlaceholder}
             value={draft.notes}
-            onChange={e => onUpdate({ notes: e.target.value })}
+            onChange={e => {
+              onUpdate({ notes: e.target.value });
+              if (isTrainingType && e.target.value) localStorage.setItem('yjfc_cfi', e.target.value);
+            }}
             className="h-7 text-xs"
           />
         </div>

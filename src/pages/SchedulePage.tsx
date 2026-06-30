@@ -829,7 +829,7 @@ export default function SchedulePage() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    setDraft({ tail, startMin, endMin, destType: 'Rental', notes: '' });
+    setDraft({ tail, startMin, endMin, destType: isTrainer ? 'Training' : 'Local', notes: '' });
 
     if (anchorRect.width > anchorRect.height) {
       // Horizontal row: card below the row, horizontally centred on click
