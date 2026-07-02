@@ -37,13 +37,13 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center">
           <div
-            className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#003057] ring-1 ring-[#003057]/25 dark:ring-[#EAAA00]/30"
+            className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--club-navy)] ring-1 ring-[var(--club-navy)]/25 dark:ring-[var(--club-gold)]/30"
           >
             <span className="font-mono text-lg font-bold tracking-tight text-[var(--club-gold)]">
               YJFC
             </span>
           </div>
-          <h1 className="text-center text-2xl font-bold tracking-tight text-[#003057] dark:text-[#f5c64f]">
+          <h1 className="text-center text-2xl font-bold tracking-tight text-[var(--club-navy)] dark:text-[#f5c64f]">
             Yellow Jacket Flying Club
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -71,7 +71,7 @@ export default function LoginPage() {
                   placeholder="your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-10 border-border/80 bg-background/60 focus-visible:border-[#EAAA00] focus-visible:ring-[#EAAA00]/40 dark:border-white/15 dark:bg-black/20"
+                  className="h-10 border-border/80 bg-background/60 focus-visible:border-[var(--club-gold)] focus-visible:ring-[var(--club-gold)]/40 dark:border-white/15 dark:bg-black/20"
                 />
               </div>
 
@@ -87,7 +87,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-10 border-border/80 bg-background/60 focus-visible:border-[#EAAA00] focus-visible:ring-[#EAAA00]/40 dark:border-white/15 dark:bg-black/20"
+                  className="h-10 border-border/80 bg-background/60 focus-visible:border-[var(--club-gold)] focus-visible:ring-[var(--club-gold)]/40 dark:border-white/15 dark:bg-black/20"
                 />
               </div>
 
@@ -106,7 +106,7 @@ export default function LoginPage() {
 
             <p className="mt-5 text-center text-xs text-muted-foreground">
               Need access?{' '}
-              <a href="https://yjfc.org/join/" className="font-medium text-[#003057] hover:underline dark:text-[#f5c64f]">
+              <a href="https://yjfc.org/join/" className="font-medium text-[var(--club-navy)] hover:underline dark:text-[#f5c64f]">
                 Learn how to join YJFC
               </a>
             </p>

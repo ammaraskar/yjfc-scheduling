@@ -7,6 +7,8 @@
 
 @theme inline {
     --color-club-gold: var(--club-gold);
+    --color-club-navy: var(--club-navy);
+    --color-club-navy-light: var(--club-navy-light);
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
@@ -51,6 +53,8 @@
 
 :root {
     --club-gold: #EAAA00;
+    --club-navy: #003057;
+    --club-navy-light: #00355f;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);

@@ -305,7 +305,7 @@ export function NewEventCard({ draft, pos, schedulingType, hasConflict, selected
       {/* Buttons */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
         <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-        <Button size="sm" style={{ background: '#003057', color: '#fff' }} onClick={onCreate} disabled={hasConflict}>
+        <Button size="sm" style={{ background: 'var(--club-navy)', color: '#fff' }} onClick={onCreate} disabled={hasConflict}>
           Create
         </Button>
       </div>

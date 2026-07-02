@@ -28,14 +28,14 @@ export default function TopBar() {
   return (
     <div
       className="shrink-0 px-3 py-2 md:px-[18px] md:py-0"
-      style={{ minHeight: 54, background: '#003057', color: '#fff' }}
+      style={{ minHeight: 54, background: 'var(--club-navy)', color: '#fff' }}
     >
       <div className="w-full flex flex-col gap-2 md:gap-0 md:flex-row md:items-center md:justify-between md:h-[54px]">
         <div className="flex items-center justify-between gap-3 min-w-0 md:flex-1">
           <div className="flex items-center gap-[9px] min-w-0 md:flex-1">
             <div
               className="w-[28px] h-[28px] md:w-[30px] md:h-[30px] rounded-full flex items-center justify-center font-mono font-semibold text-[11px] tracking-tight shrink-0"
-              style={{ background: 'var(--club-gold)', color: '#003057' }}
+              style={{ background: 'var(--club-gold)', color: 'var(--club-navy)' }}
             >
               YJ
             </div>
@@ -70,7 +70,7 @@ export default function TopBar() {
               <div className="flex items-center gap-[7px] px-[8px] md:px-[10px] py-[4px] rounded-[20px]" style={{ background: 'rgba(255,255,255,0.1)' }}>
                 <div
                   className="w-[20px] h-[20px] md:w-[22px] md:h-[22px] rounded-full flex items-center justify-center font-mono font-bold text-[10px] md:text-[11px]"
-                  style={{ background: 'var(--club-gold)', color: '#003057' }}
+                  style={{ background: 'var(--club-gold)', color: 'var(--club-navy)' }}
                 >
                   {initials}
                 </div>

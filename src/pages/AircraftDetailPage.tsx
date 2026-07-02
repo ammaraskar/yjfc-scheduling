@@ -6,17 +6,12 @@ import { getResStatus, getSchedule, EventClass, type ResStatus, type ScheduleEve
 import { liveStatus } from '@/lib/liveStatus'
 import { AvailabilityBadge } from '@/components/AvailabilityBadge'
 import { useAuth } from '@/auth'
+import { addDays } from '@/lib/dateUtils'
 
 interface SquawkEntry {
   date: string;
   text: string;
   author: string;
-}
-
-function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
 }
 
 function formatHour(d: Date): string {
@@ -45,7 +40,7 @@ function resBarColor(event: ScheduleEvent): string {
   const sep = event.dest.indexOf(':');
   const type = sep === -1 ? event.dest.trim() : event.dest.slice(0, sep).trim();
   if (type === 'Training') return 'var(--club-gold)';
-  return '#00355f';
+  return 'var(--club-navy-light)';
 }
 
 function resSubLabel(event: ScheduleEvent): string {
@@ -185,7 +180,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
         <TopBar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="font-mono font-bold text-[24px] mb-2" style={{ color: '#003057' }}>{tail}</div>
+            <div className="font-mono font-bold text-[24px] mb-2" style={{ color: 'var(--club-navy)' }}>{tail}</div>
             <div className="text-muted-foreground">Aircraft not found.</div>
             <Link href="/aircraft">
               <span className="text-sm font-semibold cursor-pointer mt-4 block text-foreground hover:underline">
@@ -529,7 +524,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
                                   href={item.adUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  style={{ color: '#003057', textDecoration: 'underline' }}
+                                  style={{ color: 'var(--club-navy)', textDecoration: 'underline' }}
                                 >
                                   {item.name}
                                 </a>
@@ -561,7 +556,7 @@ export default function AircraftDetailPage({ tail }: { tail: string }) {
             <div className="order-1 md:order-2 shrink-0 w-full md:w-[300px] p-[11px] md:p-[20px] bg-muted">
               <button
                 className="block w-full text-center text-[13.5px] md:text-[14px] font-bold rounded-[9px] py-[10px] md:py-[12px] mb-[7px] md:mb-[8px] cursor-pointer"
-                style={{ color: '#003057', background: 'var(--club-gold)', boxShadow: '0 1px 2px rgba(234,170,0,0.4)' }}
+                style={{ color: 'var(--club-navy)', background: 'var(--club-gold)', boxShadow: '0 1px 2px rgba(234,170,0,0.4)' }}
               >
                 + Reserve {aircraft.tail}
               </button>

@@ -218,8 +218,8 @@ function HorizEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDat
       position: 'absolute', top: 7, bottom: 7,
       left: `calc(${left}% + ${lOff}px)`, width: `calc(${width}% - ${lOff + rOff}px)`,
       background: vis.bg,
-      border: vis.dashed ? '1.5px dashed #00355f' : undefined,
-      borderLeft: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
+      border: vis.dashed ? '1.5px dashed var(--club-navy-light)' : undefined,
+      borderLeft: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed var(--club-navy-light)' : undefined,
       borderRadius: `${rL}px ${rR}px ${rR}px ${rL}px`,
       padding: '5px 9px',
       display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -334,9 +334,9 @@ function DraftHorizChip({ startMin, endMin, destType, schedulingType, onChangeTi
         position: 'absolute', top: 6, bottom: 6,
         left: `calc(${left}% + 2px)`, width: `calc(${width}% - 4px)`,
         background: vis.bg,
-        border: vis.dashed ? '1.5px dashed #00355f' : 'none',
+        border: vis.dashed ? '1.5px dashed var(--club-navy-light)' : 'none',
         borderRadius: 7,
-        boxShadow: '0 0 0 2px var(--card), 0 0 0 3.5px #003057, 0 2px 8px rgba(0,0,0,0.2)',
+        boxShadow: '0 0 0 2px var(--card), 0 0 0 3.5px var(--club-navy), 0 2px 8px rgba(0,0,0,0.2)',
         display: 'flex', alignItems: 'center', overflow: 'hidden',
         cursor: 'grab', userSelect: 'none', touchAction: 'none',
         zIndex: 20,
@@ -534,8 +534,8 @@ function VertEvent({ event, selectedDate }: { event: ScheduleEvent; selectedDate
       position: 'absolute', left: 3, right: 3,
       top: `calc(${topPct}% + ${tOff}px)`, height: `calc(${heightPct}% - ${tOff + bOff}px)`,
       background: vis.bg,
-      border: vis.dashed ? '1.5px dashed #00355f' : undefined,
-      borderTop: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed #00355f' : undefined,
+      border: vis.dashed ? '1.5px dashed var(--club-navy-light)' : undefined,
+      borderTop: predone ? '3px solid #16a34a' : vis.dashed ? '1.5px dashed var(--club-navy-light)' : undefined,
       borderRadius: `${rT}px ${rT}px ${rB}px ${rB}px`,
       padding: '5px 7px',
       overflow: 'hidden',
@@ -648,9 +648,9 @@ function DraftVertChip({ startMin, endMin, destType, schedulingType, onChangeTim
         position: 'absolute', left: 3, right: 3,
         top: `calc(${topPct}% + 2px)`, height: `calc(${heightPct}% - 4px)`,
         background: vis.bg,
-        border: vis.dashed ? '1.5px dashed #00355f' : 'none',
+        border: vis.dashed ? '1.5px dashed var(--club-navy-light)' : 'none',
         borderRadius: 6,
-        boxShadow: '0 0 0 2px var(--card), 0 0 0 3px #003057, 0 2px 8px rgba(0,0,0,0.15)',
+        boxShadow: '0 0 0 2px var(--card), 0 0 0 3px var(--club-navy), 0 2px 8px rgba(0,0,0,0.15)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         cursor: 'grab', userSelect: 'none', touchAction: 'none',
         zIndex: 20,
@@ -1001,11 +1001,11 @@ export default function SchedulePage() {
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
           <button
             onClick={() => setViewMode('day')}
-            style={{ padding: portrait ? '6px 10px' : '6px 14px', background: viewMode === 'day' ? '#003057' : 'var(--card)', color: viewMode === 'day' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+            style={{ padding: portrait ? '6px 10px' : '6px 14px', background: viewMode === 'day' ? 'var(--club-navy)' : 'var(--card)', color: viewMode === 'day' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
           >Day</button>
           <button
             onClick={() => setViewMode('week')}
-            style={{ padding: portrait ? '6px 10px' : '6px 14px', background: viewMode === 'week' ? '#003057' : 'var(--card)', color: viewMode === 'week' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderLeft: '1px solid var(--border)' }}
+            style={{ padding: portrait ? '6px 10px' : '6px 14px', background: viewMode === 'week' ? 'var(--club-navy)' : 'var(--card)', color: viewMode === 'week' ? '#fff' : 'var(--muted-foreground)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderLeft: '1px solid var(--border)' }}
           >Week</button>
         </div>
         {/* Aircraft filter */}
@@ -1013,7 +1013,7 @@ export default function SchedulePage() {
           <PopoverTrigger style={{
             display: 'flex', alignItems: 'center', gap: 6,
             border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px',
-            background: allSelected ? 'var(--card)' : '#003057',
+            background: allSelected ? 'var(--card)' : 'var(--club-navy)',
             color: allSelected ? 'var(--muted-foreground)' : '#fff',
             cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0,
           }}>
@@ -1028,7 +1028,7 @@ export default function SchedulePage() {
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>Aircraft</span>
                 <button
                   onClick={() => setSelectedTails(allSelected ? new Set() : new Set(AIRCRAFT.map(a => a.tail)))}
-                  style={{ fontSize: 11, fontWeight: 600, color: '#003057', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--club-navy)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   {allSelected ? 'None' : 'All'}
                 </button>
@@ -1039,7 +1039,7 @@ export default function SchedulePage() {
                     type="checkbox"
                     checked={selectedTails.has(ac.tail)}
                     onChange={() => toggleTail(ac.tail)}
-                    style={{ accentColor: '#003057', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
+                    style={{ accentColor: 'var(--club-navy)', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
                   />
                   <span style={{ fontWeight: 600, fontSize: 12 }}>{ac.tail}</span>
                   <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>{ac.makeModel.split(' ')[1] ?? ''}</span>
@@ -1053,7 +1053,7 @@ export default function SchedulePage() {
       <div className="flex items-center justify-between border-b border-border bg-muted" style={{ padding: '7px 18px', fontSize: 12, gap: 14, flexWrap: 'wrap' as const }}>
         <MetarStrip metar={metar} />
         <div className="flex items-center flex-wrap" style={{ gap: 14 }}>
-          <LegendItem color="#00355f" label="Rental" />
+          <LegendItem color="var(--club-navy-light)" label="Rental" />
           <LegendItem color="var(--club-gold)" label="Training" />
           <LegendItem color={undefined} label="Standby" dashed className="hidden sm:flex" />
           <LegendItem color={undefined} label={<><span className="hidden sm:inline">Maintenance</span><span className="sm:hidden">MX</span></>} stripe />
@@ -1183,7 +1183,7 @@ function LegendItem({ color, label, dashed, stripe, className }: { color?: strin
       <span style={{
         width: 12, height: 12, borderRadius: 3,
         background: stripe ? MAINT_STRIPE : dashed ? undefined : color,
-        border: dashed ? '1.5px dashed #00355f' : undefined,
+        border: dashed ? '1.5px dashed var(--club-navy-light)' : undefined,
         display: 'inline-block', flexShrink: 0,
       }} />
       {label}
